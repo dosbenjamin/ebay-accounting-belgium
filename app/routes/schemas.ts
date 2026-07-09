@@ -25,10 +25,7 @@ export const DocumentActionForm = Schema.Struct({
 });
 
 export const FeesActionForm = Schema.Struct({
-  currencyColumn: Schema.NonEmptyString,
-  amountColumn: Schema.NonEmptyString,
-  eurAmountColumn: Schema.optional(Schema.String),
-  usdRate: Schema.optional(Schema.NumberFromString),
+  invoiceCount: Schema.NumberFromString,
 });
 
 export type DocumentActionForm = Schema.Schema.Type<typeof DocumentActionForm>;

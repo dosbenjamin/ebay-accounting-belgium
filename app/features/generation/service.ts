@@ -3,20 +3,13 @@ import { previewFeeInvoice } from "~/features/ebay-fees/service";
 import { previewDocument } from "~/features/sales/service";
 import type { DocumentPreview } from "~/features/sales/schemas";
 import { countryNameFr, euCountryCodes } from "~/shared/countries/eu";
-import {
-  controlCsvName,
-  ebayFeesPdfName,
-  feesSummaryPdfName,
-  salesPdfName,
-} from "~/shared/files/names";
+import { ebayFeesPdfName, salesPdfName } from "~/shared/files/names";
 import { formatEur } from "~/shared/money/money";
 import { PdfService, type PdfGenerationError } from "~/shared/pdf/service";
 import { ZipService, type ZipEntry } from "~/shared/zip/service";
 import { MissingOriginalPdfError, type GenerationError } from "./errors";
 import { generationSuccess } from "./messages";
 import type { GeneratedPackage, GeneratePackageInput } from "./schemas";
-
-const encoder = new TextEncoder();
 
 type SalesSummaryInput = {
   readonly data: DocumentPreview;
@@ -63,12 +56,7 @@ export const generateSalesPdf = (input: {
       summaryTable: salesSummaryTable({ data: input.sales }),
       detailsTitle: "Détail des ventes",
       detailsTable: [
-        [
-          "Date",
-          "Numéro de commande",
-          "Pays de livraison",
-          "Montant net EUR",
-        ],
+        ["Date", "Numéro de commande", "Pays de livraison", "Montant net EUR"],
         ...input.sales.outputRows.map((row) => [
           row.createdAt,
           row.orderNumber,
@@ -108,7 +96,12 @@ export const generateRefundsPdf = (input: {
   });
 
 const amountByCountry = (document: DocumentPreview, normalizeAmount = (value: number) => value) =>
-  new Map(document.byCountry.map((row) => [row.country, { ...row, totalEur: normalizeAmount(row.totalEur) }]));
+  new Map(
+    document.byCountry.map((row) => [
+      row.country,
+      { ...row, totalEur: normalizeAmount(row.totalEur) },
+    ]),
+  );
 
 const aggregateByZone = (
   document: DocumentPreview,
@@ -136,7 +129,13 @@ export const salesRefundsSummaryTable = (input: {
     const refunds = refundsByCountry.get(country);
     const salesTotal = sales?.totalEur ?? 0;
     const refundsTotal = refunds?.totalEur ?? 0;
-    return [countryNameFr(country), "UE", formatEur(salesTotal), formatEur(refundsTotal), formatEur(salesTotal - refundsTotal)];
+    return [
+      countryNameFr(country),
+      "UE",
+      formatEur(salesTotal),
+      formatEur(refundsTotal),
+      formatEur(salesTotal - refundsTotal),
+    ];
   });
 
   const nonEuSales = aggregateByZone(input.sales, "NON_EU");
@@ -208,24 +207,14 @@ export const generateSalesRefundsPdf = (input: {
         {
           title: "Détail des ventes",
           table: [
-            [
-              "Date",
-              "Numéro de commande",
-              "Pays de livraison",
-              "Montant net EUR",
-            ],
+            ["Date", "Numéro de commande", "Pays de livraison", "Montant net EUR"],
             ...detailRows(input.sales),
           ],
         },
         {
           title: "Détail des remboursements",
           table: [
-            [
-              "Date",
-              "Numéro de commande",
-              "Pays de livraison",
-              "Montant net EUR",
-            ],
+            ["Date", "Numéro de commande", "Pays de livraison", "Montant net EUR"],
             ...detailRows(input.refunds),
           ],
         },
@@ -238,7 +227,10 @@ export const generateQuarterPackage = (
 ): Effect.Effect<
   { readonly data: GeneratedPackage; readonly messages: ReturnType<typeof generationSuccess> },
   GenerationError,
-  PdfService | ZipService | import("~/shared/csv/service").CsvParser
+  | PdfService
+  | ZipService
+  | import("~/shared/csv/service").CsvParser
+  | import("~/shared/exchange-rates/service").ExchangeRateProvider
 > =>
   Effect.gen(function* () {
     const pdf = yield* PdfService;
@@ -257,7 +249,12 @@ export const generateQuarterPackage = (
 
     entries.push({
       name: salesPdfName(input.params.year, input.params.quarter),
-      data: yield* generateSalesRefundsPdf({ sales: sales.data, refunds: refunds.data, periodLine, generatedOn }),
+      data: yield* generateSalesRefundsPdf({
+        sales: sales.data,
+        refunds: refunds.data,
+        periodLine,
+        generatedOn,
+      }),
     });
 
     for (const feeResult of feePreviews) {
@@ -272,11 +269,7 @@ export const generateQuarterPackage = (
           originalPdf: original.bytes,
           originalFileName: original.fileName,
           title: "Annexe - Conversion comptable en EUR",
-          lines: [
-            `Mois: ${fee.month}`,
-            `Année: ${fee.year}`,
-            `Fichier PDF original: ${original.fileName}`,
-          ],
+          lines: [`Mois: ${fee.month}`, `Année: ${fee.year}`],
           table: [
             ["Devise", "Montant devise", "Taux", "Montant EUR"],
             ...fee.totalsByCurrency.map((row) => [
@@ -290,37 +283,6 @@ export const generateQuarterPackage = (
         }),
       });
     }
-
-    const totalFees = feePreviews.reduce((sum, fee) => sum + fee.data.totalEur, 0);
-    entries.push({
-      name: feesSummaryPdfName(input.params.year, input.params.quarter),
-      data: yield* pdf.summaryPdf({
-        title: "Synthèse frais eBay",
-        lines: [periodLine, `Total frais global: ${formatEur(totalFees)}`],
-        table: [
-          ["Facture", "Mois", "Total EUR"],
-          ...feePreviews.map((fee) => [
-            fee.data.invoiceId,
-            fee.data.month,
-            formatEur(fee.data.totalEur),
-          ]),
-        ],
-      }),
-    });
-
-    entries.push({
-      name: controlCsvName(input.params.year, input.params.quarter),
-      data: encoder.encode(
-        [
-          "type,reference,total_eur",
-          `ventes,${input.params.quarter},${sales.data.totalEur.toFixed(2)}`,
-          `remboursements,${input.params.quarter},${refunds.data.totalEur.toFixed(2)}`,
-          ...feePreviews.map(
-            (fee) => `frais,${fee.data.invoiceId},${fee.data.totalEur.toFixed(2)}`,
-          ),
-        ].join("\n"),
-      ),
-    });
 
     const zipBytes = yield* zip.create(entries);
     return {

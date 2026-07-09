@@ -1,29 +1,34 @@
-import { error, success, type ViewMessage } from '~/shared/errors/messages';
-import type { EbayFeesError } from './errors';
+import { error, success, type ViewMessage } from "~/shared/errors/messages";
+import type { EbayFeesError } from "./errors";
 
 export const ebayFeesErrorMessages = (errorValue: EbayFeesError): readonly ViewMessage[] => {
   switch (errorValue._tag) {
-    case 'MissingExchangeRateError':
+    case "MissingExchangeRateError":
       return [
         error(
-          'missing-exchange-rate',
-          `Le taux EUR manque pour ${errorValue.currency} dans la facture ${errorValue.invoiceId}. Ajoutez un taux manuel.`,
+          "missing-exchange-rate",
+          `Le taux BCE EUR manque pour ${errorValue.currency} dans la facture ${errorValue.invoiceId}. Vérifiez la devise ou ajoutez un montant EUR dans le CSV.`,
           { invoiceId: errorValue.invoiceId, currency: errorValue.currency },
         ),
       ];
-    case 'FeeMappingError':
+    case "FeeMappingError":
       return [
         error(
-          'fee-mapping',
+          "fee-mapping",
           `La colonne "${errorValue.column}" est introuvable dans ${errorValue.fileName}. Corrigez le mapping des frais.`,
           { fileName: errorValue.fileName, column: errorValue.column },
         ),
       ];
-    case 'FeePreviewError':
-      return [error('fee-preview', errorValue.message)];
+    case "FeePreviewError":
+      return [error("fee-preview", errorValue.message)];
+    case "ExchangeRateLookupError":
+      return [error("exchange-rate-lookup", errorValue.message, { currency: errorValue.currency })];
   }
 };
 
 export const feePreviewSuccess = (invoiceId: string, totalEur: number): readonly ViewMessage[] => [
-  success('fee-preview-ok', `Facture ${invoiceId}: total comptable détecté ${totalEur.toFixed(2)} EUR.`),
+  success(
+    "fee-preview-ok",
+    `Facture ${invoiceId}: total comptable détecté ${totalEur.toFixed(2)} EUR.`,
+  ),
 ];

@@ -15,6 +15,17 @@ Le MVP genere un dossier comptable ZIP a partir de fichiers uploades manuellemen
   - PDF officiel facture frais eBay.
   - CSV detail frais eBay correspondant.
 
+Une facture de frais eBay est toujours une paire obligatoire: PDF officiel + CSV detail frais.
+L'interface permet d'ajouter plusieurs factures successivement, avec une dropzone par facture
+qui doit contenir exactement cette paire de fichiers avant calcul/generation.
+
+Workflow MVP:
+
+- La page index regroupe tous les uploads du trimestre.
+- Un seul bouton final genere le ZIP comptable.
+- Les anciennes routes d'etapes peuvent rester comme adaptateurs techniques, mais le flux utilisateur principal
+  doit rester mono-page tant que l'etat de session durable n'est pas introduit.
+
 Le besoin principal est de calculer un total comptable EUR par facture de frais eBay.
 Chaque facture finale doit rester separee et identifiable: on ajoute uniquement une page
 d'annexe en premiere page, puis les pages du PDF eBay officiel sont copiees sans modification.
@@ -205,7 +216,7 @@ Format conceptuel:
 ```ts
 type ViewMessage = {
   id: string;
-  severity: 'success' | 'info' | 'warning' | 'error';
+  severity: "success" | "info" | "warning" | "error";
   text: string;
   target?: {
     step?: string;
@@ -244,7 +255,16 @@ Frais eBay:
 - Priorite des taux/conversions:
   1. Si le CSV contient deja un montant converti en EUR, l'utiliser.
   2. Sinon, permettre un taux manuel.
-  3. Prevoir `ExchangeRateProvider` pour BCE/API plus tard.
+  3. Sinon, utiliser `ExchangeRateProvider` live base sur les taux de reference BCE.
+
+CSV detail frais eBay:
+
+- Structure attendue stable du rapport `Details de la facture fiscale`.
+- Colonnes fixes utilisees par defaut:
+  - `Devise`
+  - `Montant total`
+- Le mois et l'annee de facture sont lus depuis la ligne `Periode`.
+- Le frontend ne demande pas de mapping de colonnes ni de periode pour ce CSV.
 
 PDF frais:
 
@@ -271,10 +291,8 @@ ZIP final:
 - `remboursements_<annee>_<trimestre>.pdf`
 - Pour chaque facture eBay:
   - `<mois>_frais_ebay_avec_annexe_eur.pdf`
-- `synthese_frais_<annee>_<trimestre>.pdf`
-- `controle_<annee>_<trimestre>.csv`
 
-Le CSV de controle remplace le XLSX pour le MVP.
+Pas de fichier de synthese frais separe ni de CSV de controle pour le MVP actuel.
 
 ## Contraintes Cloudflare
 
