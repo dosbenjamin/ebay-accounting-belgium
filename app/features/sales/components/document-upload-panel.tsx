@@ -88,9 +88,11 @@ export function DocumentUploadPanel({ title, description, documentType, messages
                   name="documentCsv"
                   accept={{ "text/csv": [".csv"] }}
                   maxFiles={Number.MAX_SAFE_INTEGER}
+                  width="100%"
                 >
                   <FileUpload.HiddenInput />
                   <FileUpload.Dropzone
+                    width="100%"
                     minH="32"
                     borderWidth="1px"
                     borderColor="gray.200"
@@ -117,9 +119,11 @@ export function DocumentUploadPanel({ title, description, documentType, messages
                     name="refundCsv"
                     accept={{ "text/csv": [".csv"] }}
                     maxFiles={Number.MAX_SAFE_INTEGER}
+                    width="100%"
                   >
                     <FileUpload.HiddenInput />
                     <FileUpload.Dropzone
+                      width="100%"
                       minH="32"
                       borderWidth="1px"
                       borderColor="gray.200"
