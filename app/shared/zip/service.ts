@@ -21,6 +21,6 @@ export const ZipServiceLive = Layer.succeed(ZipService, {
   create: (entries) =>
     Effect.try({
       try: () => zipSync(Object.fromEntries(entries.map((entry) => [entry.name, entry.data]))),
-      catch: () => new ZipGenerationError({ message: 'Generation ZIP impossible.' }),
+      catch: () => new ZipGenerationError({ message: 'Génération ZIP impossible.' }),
     }),
 });

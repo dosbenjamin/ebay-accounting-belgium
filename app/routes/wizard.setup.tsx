@@ -37,7 +37,7 @@ export default function SetupRoute() {
   const actionData = useActionData<typeof action>();
   return (
     <Stack gap='5'>
-      <Heading size='lg'>Parametres</Heading>
+      <Heading size='lg'>Paramètres</Heading>
       <MessageList
         messages={actionData && 'messages' in actionData ? actionData.messages : actionData ? setupSaved() : []}
       />
@@ -45,7 +45,7 @@ export default function SetupRoute() {
         <Stack gap='5'>
           <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap='4'>
             <Field.Root>
-              <Field.Label>Annee</Field.Label>
+              <Field.Label>Année</Field.Label>
               <Input name='year' type='number' defaultValue={new Date().getFullYear()} />
             </Field.Root>
             <Field.Root>
@@ -54,7 +54,7 @@ export default function SetupRoute() {
                 <Select.HiddenSelect />
                 <Select.Control>
                   <Select.Trigger>
-                    <Select.ValueText placeholder='Selectionner un trimestre' />
+                    <Select.ValueText placeholder='Sélectionner un trimestre' />
                   </Select.Trigger>
                   <Select.IndicatorGroup>
                     <Select.Indicator />

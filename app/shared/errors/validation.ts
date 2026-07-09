@@ -5,9 +5,9 @@ export const validationErrorMessages = (validationError: InputValidationError): 
   error(
     `${validationError.scope}-validation`,
     validationError.scope === 'json'
-      ? 'Les donnees envoyees sont invalides. Verifiez le formulaire puis reessayez.'
+      ? 'Les données envoyées sont invalides. Vérifiez le formulaire puis réessayez.'
       : validationError.scope === 'form'
         ? 'Le formulaire est incomplet ou invalide.'
-        : 'Les parametres de la requete sont invalides.',
+        : 'Les paramètres de la requête sont invalides.',
   ),
 ];

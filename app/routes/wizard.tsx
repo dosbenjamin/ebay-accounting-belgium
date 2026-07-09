@@ -4,8 +4,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 const steps = [
   { href: '/sales', label: 'Ventes et remboursements' },
   { href: '/fees', label: 'Frais eBay' },
-  { href: '/review', label: 'Verification' },
-  { href: '/generate', label: 'Generation' },
+  { href: '/review', label: 'Vérification' },
+  { href: '/generate', label: 'Génération' },
 ];
 
 export default function WizardLayout() {
@@ -19,7 +19,7 @@ export default function WizardLayout() {
         <Flex justify='space-between' align={{ base: 'start', md: 'center' }} gap='4'>
           <Box>
             <Text textStyle='sm' color='gray.600'>
-              Comptabilite eBay Belgique
+              Comptabilité eBay Belgique
             </Text>
             <Text textStyle='2xl' fontWeight='700'>
               Dossier trimestriel

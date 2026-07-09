@@ -134,8 +134,8 @@ export default function SalesRoute() {
   const actionData = useActionData<typeof action>();
   return (
     <DocumentUploadPanel
-      title="Upload ventes et remboursements"
-      description="Ajoutez les CSV de ventes et, si present, les CSV de remboursements eBay. Les colonnes standard du rapport sont detectees automatiquement."
+      title="Ventes et remboursements"
+      description="Ajoutez les CSV de ventes et, si présent, les CSV de remboursements eBay. Les colonnes standard du rapport sont détectées automatiquement."
       documentType="sales"
       messages={actionData?.messages ?? []}
       summary={actionData?.ok ? actionData.data : undefined}

@@ -51,4 +51,4 @@ export class UnexpectedAppError extends Data.TaggedError('UnexpectedAppError')<{
 }> {}
 
 export const toUnknownErrorMessage = (_cause: unknown): ViewMessage =>
-  error('unexpected', 'Une erreur inattendue est survenue. Verifiez les fichiers et reessayez.');
+  error('unexpected', 'Une erreur inattendue est survenue. Vérifiez les fichiers et réessayez.');

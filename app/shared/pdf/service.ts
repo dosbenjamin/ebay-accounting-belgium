@@ -93,7 +93,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         await drawLines(pdf, input.title, input.lines, input.table);
         return pdf.save();
       },
-      catch: () => new PdfGenerationError({ message: 'Generation PDF impossible.' }),
+      catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
     }),
   summaryWithDetailsPdf: (input) =>
     Effect.tryPromise({
@@ -103,7 +103,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         await drawLines(pdf, input.detailsTitle, [], input.detailsTable, true);
         return pdf.save();
       },
-      catch: () => new PdfGenerationError({ message: 'Generation PDF impossible.' }),
+      catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
     }),
   summaryWithDetailSectionsPdf: (input) =>
     Effect.tryPromise({
@@ -115,7 +115,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         }
         return pdf.save();
       },
-      catch: () => new PdfGenerationError({ message: 'Generation PDF impossible.' }),
+      catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
     }),
   withAnnexPage: (input) =>
     Effect.tryPromise({
@@ -127,7 +127,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
           [
             ...input.lines,
             `Total comptable en EUR: ${input.totalEur.toFixed(2)} EUR`,
-            'Les pages suivantes correspondent a la facture eBay officielle non modifiee.',
+            'Les pages suivantes correspondent à la facture eBay officielle non modifiée.',
           ],
           input.table,
         );
@@ -138,7 +138,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
       },
       catch: () =>
         new PdfGenerationError({
-          message: "Impossible d'ajouter l'annexe a la facture eBay.",
+          message: "Impossible d'ajouter l'annexe à la facture eBay.",
           fileName: input.originalFileName,
         }),
     }),

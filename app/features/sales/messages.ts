@@ -21,12 +21,12 @@ export const documentPreviewMessages = (
   rowCount: number,
   unknownCountryCount: number,
 ): readonly ViewMessage[] => [
-  success(`${kind}-preview-ok`, `${kind === 'sales' ? 'Ventes' : 'Remboursements'}: ${rowCount} lignes analysees.`),
+  success(`${kind}-preview-ok`, `${kind === 'sales' ? 'Ventes' : 'Remboursements'}: ${rowCount} lignes analysées.`),
   ...(unknownCountryCount > 0
     ? [
         warning(
           `${kind}-unknown-countries`,
-          `${unknownCountryCount} pays n'ont pas ete reconnus. Verifiez la colonne Pays avant generation.`,
+          `${unknownCountryCount} pays n'ont pas été reconnus. Vérifiez la colonne Pays avant génération.`,
         ),
       ]
     : []),

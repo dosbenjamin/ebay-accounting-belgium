@@ -15,7 +15,7 @@ describe('pdf service', () => {
             ['Zone / pays', 'Lignes', 'Total EUR'],
             ['BE', '1', '100.00'],
           ],
-          detailsTitle: 'Detail des ventes',
+          detailsTitle: 'Détail des ventes',
           detailsTable: [
             ['Date', 'Numéro de commande', 'Pays de livraison', 'Montant net'],
             ...Array.from({ length: 80 }, (_, index) => [
@@ -43,11 +43,11 @@ describe('pdf service', () => {
           summaryTable: [['Pays', 'Zone', 'Ventes EUR', 'Remboursements EUR', 'Total net EUR']],
           sections: [
             {
-              title: 'Detail des ventes',
+              title: 'Détail des ventes',
               table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-01', 'A', 'BE', '1']],
             },
             {
-              title: 'Detail des remboursements',
+              title: 'Détail des remboursements',
               table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-02', 'B', 'BE', '2']],
             },
           ],

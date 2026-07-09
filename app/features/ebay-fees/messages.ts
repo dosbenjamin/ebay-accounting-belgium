@@ -25,5 +25,5 @@ export const ebayFeesErrorMessages = (errorValue: EbayFeesError): readonly ViewM
 };
 
 export const feePreviewSuccess = (invoiceId: string, totalEur: number): readonly ViewMessage[] => [
-  success('fee-preview-ok', `Facture ${invoiceId}: total comptable detecte ${totalEur.toFixed(2)} EUR.`),
+  success('fee-preview-ok', `Facture ${invoiceId}: total comptable détecté ${totalEur.toFixed(2)} EUR.`),
 ];

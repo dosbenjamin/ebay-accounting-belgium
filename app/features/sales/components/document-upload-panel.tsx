@@ -44,7 +44,7 @@ export function DocumentUploadPanel({ title, description, documentType, messages
             {
               id: "pdf-generation-client",
               severity: "error",
-              text: "Le PDF n'a pas pu etre genere. Verifiez le fichier CSV puis reessayez.",
+              text: "Le PDF n'a pas pu être généré. Vérifiez le fichier CSV puis réessayez.",
             },
           ],
         );
@@ -63,7 +63,7 @@ export function DocumentUploadPanel({ title, description, documentType, messages
         {
           id: "pdf-generation-network",
           severity: "error",
-          text: "Le PDF n'a pas pu etre genere. Verifiez le fichier CSV puis reessayez.",
+          text: "Le PDF n'a pas pu être généré. Vérifiez le fichier CSV puis réessayez.",
         },
       ]);
     } finally {
@@ -100,16 +100,16 @@ export function DocumentUploadPanel({ title, description, documentType, messages
                     p="5"
                   >
                     <FileUpload.DropzoneContent>
-                      <Text fontWeight="600">Deposez les CSV ici</Text>
+                      <Text fontWeight="600">Déposez les CSV ici</Text>
                       <Text color="gray.600" textStyle="sm">
-                        ou selectionnez un ou plusieurs fichiers
+                        ou sélectionnez un ou plusieurs fichiers
                       </Text>
                     </FileUpload.DropzoneContent>
                   </FileUpload.Dropzone>
                   <FileUpload.List showSize clearable />
                 </FileUpload.Root>
                 <Field.HelperText>
-                  Vous pouvez selectionner plusieurs fichiers CSV.
+                  Vous pouvez sélectionner plusieurs fichiers CSV.
                 </Field.HelperText>
               </Field.Root>
               {documentType === "sales" ? (
@@ -131,20 +131,20 @@ export function DocumentUploadPanel({ title, description, documentType, messages
                       p="5"
                     >
                       <FileUpload.DropzoneContent>
-                        <Text fontWeight="600">Deposez les CSV ici</Text>
+                        <Text fontWeight="600">Déposez les CSV ici</Text>
                         <Text color="gray.600" textStyle="sm">
-                          ou selectionnez un ou plusieurs fichiers
+                          ou sélectionnez un ou plusieurs fichiers
                         </Text>
                       </FileUpload.DropzoneContent>
                     </FileUpload.Dropzone>
                     <FileUpload.List showSize clearable />
                   </FileUpload.Root>
-                  <Field.HelperText>Si aucun fichier n'est ajoute, les remboursements restent a zero.</Field.HelperText>
+                  <Field.HelperText>Si aucun fichier n'est ajouté, les remboursements restent à zéro.</Field.HelperText>
                 </Field.Root>
               ) : null}
             </Grid>
             <Button type="submit" colorPalette="brand" alignSelf="flex-start" disabled={isGeneratingPdf}>
-              {isGeneratingPdf ? "Analyse et generation..." : "Analyser et generer le PDF"}
+              {isGeneratingPdf ? "Analyse et génération..." : "Analyser et générer le PDF"}
             </Button>
           </Stack>
         </form>

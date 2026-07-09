@@ -89,7 +89,7 @@ export default function FeesRoute() {
               <Input name='invoicePdf' type='file' accept='application/pdf' />
             </Field.Root>
             <Field.Root>
-              <Field.Label>CSV detail frais</Field.Label>
+              <Field.Label>CSV détail frais</Field.Label>
               <Input name='feesCsv' type='file' accept='.csv,text/csv' />
             </Field.Root>
             <Field.Root>

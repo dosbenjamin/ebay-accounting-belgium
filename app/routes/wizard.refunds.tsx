@@ -139,8 +139,8 @@ export default function RefundsRoute() {
   const actionData = useActionData<typeof action>();
   return (
     <DocumentUploadPanel
-      title="Upload remboursements"
-      description="Ajoutez un ou plusieurs CSV de remboursements eBay. Les colonnes standard du rapport sont detectees automatiquement."
+      title="Remboursements"
+      description="Ajoutez un ou plusieurs CSV de remboursements eBay. Les colonnes standard du rapport sont détectées automatiquement."
       documentType="refunds"
       messages={actionData?.messages ?? []}
       summary={actionData?.ok ? actionData.data : undefined}

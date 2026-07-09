@@ -5,6 +5,6 @@ export const action = async () =>
   apiSuccess({ ready: true }, [
     info(
       'review-placeholder',
-      'Verification consolidee prete. La generation executera les controles complets cote Worker.',
+      'Vérification consolidée prête. La génération exécutera les contrôles complets côté Worker.',
     ),
   ]);

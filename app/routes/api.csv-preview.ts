@@ -35,7 +35,7 @@ export const action = async ({ request }: { request: Request }) => {
             return apiFailure(400, [
               error(
                 'csv-preview-failed',
-                `Impossible de lire ${cause.fileName ?? 'le fichier CSV'}. Verifiez le format CSV.`,
+                `Impossible de lire ${cause.fileName ?? 'le fichier CSV'}. Vérifiez le format CSV.`,
               ),
             ]);
         }
@@ -46,7 +46,7 @@ export const action = async ({ request }: { request: Request }) => {
             ...preview,
             rows: preview.previewRows,
           },
-          [success('csv-preview-ok', `${fileName}: ${preview.rowCount} lignes detectees.`)],
+          [success('csv-preview-ok', `${fileName}: ${preview.rowCount} lignes détectées.`)],
         ),
     }),
   );

@@ -28,5 +28,5 @@ export const generationErrorMessages = (errorValue: GenerationError): readonly V
 };
 
 export const generationSuccess = (manifestCount: number): readonly ViewMessage[] => [
-  success('generation-ok', `Dossier comptable genere avec ${manifestCount} fichiers.`),
+  success('generation-ok', `Dossier comptable généré avec ${manifestCount} fichiers.`),
 ];

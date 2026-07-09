@@ -55,13 +55,13 @@ export const generateSalesPdf = (input: {
       title: "Ventes trimestrielles eBay",
       lines: [
         ...(input.periodLine ? [input.periodLine] : []),
-        `Date de generation: ${input.generatedOn}`,
+        `Date de génération: ${input.generatedOn}`,
         `Total ventes: ${formatEur(input.sales.totalEur)}`,
         `Total UE: ${formatEur(input.sales.euTotal)}`,
         `Total hors UE: ${formatEur(input.sales.nonEuTotal)}`,
       ],
       summaryTable: salesSummaryTable({ data: input.sales }),
-      detailsTitle: "Detail des ventes",
+      detailsTitle: "Détail des ventes",
       detailsTable: [
         [
           "Date",
@@ -90,7 +90,7 @@ export const generateRefundsPdf = (input: {
       title: "Remboursements trimestriels eBay",
       lines: [
         ...(input.periodLine ? [input.periodLine] : []),
-        `Date de generation: ${input.generatedOn}`,
+        `Date de génération: ${input.generatedOn}`,
         `Total remboursements: ${formatEur(input.refunds.totalEur)}`,
         `Total UE: ${formatEur(input.refunds.euTotal)}`,
         `Total hors UE: ${formatEur(input.refunds.nonEuTotal)}`,
@@ -188,7 +188,7 @@ export const generateSalesRefundsPdf = (input: {
       title: "Ventes et remboursements eBay",
       lines: [
         ...(input.periodLine ? [input.periodLine] : []),
-        `Date de generation: ${input.generatedOn}`,
+        `Date de génération: ${input.generatedOn}`,
         `Total ventes: ${formatEur(input.sales.totalEur)}`,
         `Total remboursements: ${formatEur(refundsTotal)}`,
         `Total net: ${formatEur(input.sales.totalEur - refundsTotal)}`,
@@ -196,7 +196,7 @@ export const generateSalesRefundsPdf = (input: {
       summaryTable: salesRefundsSummaryTable({ sales: input.sales, refunds: input.refunds }),
       sections: [
         {
-          title: "Detail des ventes",
+          title: "Détail des ventes",
           table: [
             [
               "Date",
@@ -208,7 +208,7 @@ export const generateSalesRefundsPdf = (input: {
           ],
         },
         {
-          title: "Detail des remboursements",
+          title: "Détail des remboursements",
           table: [
             [
               "Date",
@@ -243,7 +243,7 @@ export const generateQuarterPackage = (
 
     const entries: ZipEntry[] = [];
     const generatedOn = new Date().toISOString().slice(0, 10);
-    const periodLine = `Periode: ${input.params.year} ${input.params.quarter}`;
+    const periodLine = `Période: ${input.params.year} ${input.params.quarter}`;
 
     entries.push({
       name: salesPdfName(input.params.year, input.params.quarter),
@@ -264,7 +264,7 @@ export const generateQuarterPackage = (
           title: "Annexe - Conversion comptable en EUR",
           lines: [
             `Mois: ${fee.month}`,
-            `Annee: ${fee.year}`,
+            `Année: ${fee.year}`,
             `Fichier PDF original: ${original.fileName}`,
           ],
           table: [
@@ -285,7 +285,7 @@ export const generateQuarterPackage = (
     entries.push({
       name: feesSummaryPdfName(input.params.year, input.params.quarter),
       data: yield* pdf.summaryPdf({
-        title: "Synthese frais eBay",
+        title: "Synthèse frais eBay",
         lines: [periodLine, `Total frais global: ${formatEur(totalFees)}`],
         table: [
           ["Facture", "Mois", "Total EUR"],
