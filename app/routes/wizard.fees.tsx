@@ -77,12 +77,19 @@ export const action = async ({ request }: { request: Request }): Promise<ActionD
 
     const previews = [];
     const messages: ViewMessage[] = [];
+    const seenInvoiceIds = new Set<string>();
     for (let index = 0; index < form.invoiceCount; index += 1) {
       const { pdf, csv } = yield* readInvoiceFiles(formData, index);
+      const invoiceId = invoiceIdFromFileName(csv.name || pdf.name, index);
+      if (seenInvoiceIds.has(invoiceId)) {
+        continue;
+      }
+      seenInvoiceIds.add(invoiceId);
+
       const csvText = yield* Effect.promise(() => csv.text());
       const period = yield* inferEbayInvoicePeriod(csvText, csv.name);
       const preview = yield* previewFeeInvoice({
-        invoiceId: invoiceIdFromFileName(csv.name || pdf.name, index),
+        invoiceId,
         month: period.month,
         year: period.year,
         originalPdfFileName: pdf.name,

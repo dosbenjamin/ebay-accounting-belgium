@@ -264,7 +264,7 @@ export const generateQuarterPackage = (
         return yield* Effect.fail(new MissingOriginalPdfError({ invoiceId: fee.invoiceId }));
       }
       entries.push({
-        name: ebayFeesPdfName(fee.month),
+        name: ebayFeesPdfName(fee.month, fee.invoiceId),
         data: yield* pdf.withAnnexPage({
           originalPdf: original.bytes,
           originalFileName: original.fileName,

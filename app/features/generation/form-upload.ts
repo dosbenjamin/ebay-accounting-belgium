@@ -114,11 +114,17 @@ export const generatePackageFromUploadForm = (formData: FormData) =>
 
     const fees = [];
     const feePdfs = [];
+    const seenFeeInvoiceIds = new Set<string>();
     for (let index = 0; index < feesForm.invoiceCount; index += 1) {
       const { pdf, csv } = yield* readFeePair(formData, index);
+      const invoiceId = invoiceIdFromFileName(csv.name || pdf.name, index);
+      if (seenFeeInvoiceIds.has(invoiceId)) {
+        continue;
+      }
+      seenFeeInvoiceIds.add(invoiceId);
+
       const csvText = yield* Effect.promise(() => csv.text());
       const period = yield* inferEbayInvoicePeriod(csvText, csv.name);
-      const invoiceId = invoiceIdFromFileName(csv.name || pdf.name, index);
       fees.push({
         invoiceId,
         month: period.month,
