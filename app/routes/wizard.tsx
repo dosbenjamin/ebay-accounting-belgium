@@ -18,11 +18,8 @@ export default function WizardLayout() {
       <Stack gap='6'>
         <Flex justify='space-between' align={{ base: 'start', md: 'center' }} gap='4'>
           <Box>
-            <Text textStyle='sm' color='gray.600'>
-              Comptabilité eBay Belgique
-            </Text>
             <Text textStyle='2xl' fontWeight='700'>
-              Dossier trimestriel
+              Comptabilité eBay
             </Text>
           </Box>
           <Badge colorPalette='brand'>MVP Worker</Badge>
