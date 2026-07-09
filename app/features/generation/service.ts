@@ -67,13 +67,13 @@ export const generateSalesPdf = (input: {
           "Date",
           "Numéro de commande",
           "Pays de livraison",
-          "Montant net",
+          "Montant net EUR",
         ],
         ...input.sales.outputRows.map((row) => [
           row.createdAt,
           row.orderNumber,
           row.shippingCountry,
-          row.netAmount,
+          formatNetAmountEur(row.netAmount),
         ]),
       ],
     });
@@ -172,8 +172,18 @@ export const salesRefundsSummaryTable = (input: {
   ];
 };
 
+const formatNetAmountEur = (value: string): string => {
+  const amount = value.trim();
+  return amount.length > 0 && amount !== "--" ? `${amount} EUR` : amount;
+};
+
 const detailRows = (document: DocumentPreview) =>
-  document.outputRows.map((row) => [row.createdAt, row.orderNumber, countryNameFr(row.shippingCountry), row.netAmount]);
+  document.outputRows.map((row) => [
+    row.createdAt,
+    row.orderNumber,
+    countryNameFr(row.shippingCountry),
+    formatNetAmountEur(row.netAmount),
+  ]);
 
 export const generateSalesRefundsPdf = (input: {
   readonly sales: DocumentPreview;
@@ -202,7 +212,7 @@ export const generateSalesRefundsPdf = (input: {
               "Date",
               "Numéro de commande",
               "Pays de livraison",
-              "Montant net",
+              "Montant net EUR",
             ],
             ...detailRows(input.sales),
           ],
@@ -214,7 +224,7 @@ export const generateSalesRefundsPdf = (input: {
               "Date",
               "Numéro de commande",
               "Pays de livraison",
-              "Montant net",
+              "Montant net EUR",
             ],
             ...detailRows(input.refunds),
           ],
