@@ -17,7 +17,7 @@ describe('pdf service', () => {
           ],
           detailsTitle: 'Detail des ventes',
           detailsTable: [
-            ['Date de création de la transaction', 'Numéro de commande', 'Pays de livraison', "Numéro de l'objet"],
+            ['Date', 'Numéro de commande', 'Pays de livraison', 'Montant net'],
             ...Array.from({ length: 80 }, (_, index) => [
               '30 juin 2026',
               `18-14823-${String(index).padStart(5, '0')}`,
@@ -31,5 +31,31 @@ describe('pdf service', () => {
 
     const document = await PDFDocument.load(bytes);
     expect(document.getPageCount()).toBeGreaterThan(2);
+  });
+
+  it('starts each detail section on a new page', async () => {
+    const bytes = await Effect.runPromise(
+      Effect.gen(function* () {
+        const pdf = yield* PdfService;
+        return yield* pdf.summaryWithDetailSectionsPdf({
+          title: 'Ventes et remboursements eBay',
+          lines: ['Total net: 75.00 EUR'],
+          summaryTable: [['Pays', 'Zone', 'Ventes EUR', 'Remboursements EUR', 'Total net EUR']],
+          sections: [
+            {
+              title: 'Detail des ventes',
+              table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-01', 'A', 'BE', '1']],
+            },
+            {
+              title: 'Detail des remboursements',
+              table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-02', 'B', 'BE', '2']],
+            },
+          ],
+        });
+      }).pipe(Effect.provide(PdfServiceLive)),
+    );
+
+    const document = await PDFDocument.load(bytes);
+    expect(document.getPageCount()).toBe(3);
   });
 });

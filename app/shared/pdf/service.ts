@@ -7,6 +7,10 @@ export class PdfGenerationError extends Data.TaggedError('PdfGenerationError')<{
 }> {}
 
 export type PdfTableRow = readonly string[];
+export type PdfDetailsSection = {
+  readonly title: string;
+  readonly table: readonly PdfTableRow[];
+};
 
 export class PdfService extends Context.Tag('PdfService')<
   PdfService,
@@ -22,6 +26,12 @@ export class PdfService extends Context.Tag('PdfService')<
       readonly summaryTable: readonly PdfTableRow[];
       readonly detailsTitle: string;
       readonly detailsTable: readonly PdfTableRow[];
+    }) => Effect.Effect<Uint8Array, PdfGenerationError>;
+    readonly summaryWithDetailSectionsPdf: (input: {
+      readonly title: string;
+      readonly lines: readonly string[];
+      readonly summaryTable: readonly PdfTableRow[];
+      readonly sections: readonly PdfDetailsSection[];
     }) => Effect.Effect<Uint8Array, PdfGenerationError>;
     readonly withAnnexPage: (input: {
       readonly originalPdf: Uint8Array;
@@ -91,6 +101,18 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         const pdf = await PDFDocument.create();
         await drawLines(pdf, input.title, input.lines, input.summaryTable);
         await drawLines(pdf, input.detailsTitle, [], input.detailsTable, true);
+        return pdf.save();
+      },
+      catch: () => new PdfGenerationError({ message: 'Generation PDF impossible.' }),
+    }),
+  summaryWithDetailSectionsPdf: (input) =>
+    Effect.tryPromise({
+      try: async () => {
+        const pdf = await PDFDocument.create();
+        await drawLines(pdf, input.title, input.lines, input.summaryTable);
+        for (const section of input.sections) {
+          await drawLines(pdf, section.title, [], section.table, true);
+        }
         return pdf.save();
       },
       catch: () => new PdfGenerationError({ message: 'Generation PDF impossible.' }),

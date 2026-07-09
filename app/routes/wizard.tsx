@@ -2,9 +2,7 @@ import { Badge, Box, Container, Flex, Stack, Tabs, Text } from '@chakra-ui/react
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
 const steps = [
-  { href: '/', label: 'Parametres' },
-  { href: '/sales', label: 'Ventes' },
-  { href: '/refunds', label: 'Remboursements' },
+  { href: '/sales', label: 'Ventes et remboursements' },
   { href: '/fees', label: 'Frais eBay' },
   { href: '/review', label: 'Verification' },
   { href: '/generate', label: 'Generation' },
@@ -13,6 +11,7 @@ const steps = [
 export default function WizardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const activeStep = location.pathname === '/' ? '/sales' : location.pathname;
 
   return (
     <Container maxW='7xl' py={{ base: '4', md: '8' }}>
@@ -29,11 +28,11 @@ export default function WizardLayout() {
           <Badge colorPalette='brand'>MVP Worker</Badge>
         </Flex>
         <Tabs.Root
-          value={location.pathname}
+          value={activeStep}
           colorPalette='brand'
           variant='subtle'
           onValueChange={({ value }) => {
-            if (value !== location.pathname) navigate(value);
+            if (value !== activeStep) navigate(value);
           }}
         >
           <Tabs.List overflowX='auto'>

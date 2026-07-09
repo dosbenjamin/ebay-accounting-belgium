@@ -1,11 +1,12 @@
-import { Box, Button, Field, FileUpload, Grid, Heading, Stack, Text } from '@chakra-ui/react';
-import { MessageList } from '~/shared/ui/messages';
-import type { ViewMessage } from '~/shared/errors/messages';
+import { Box, Button, Field, FileUpload, Grid, Heading, Stack, Text } from "@chakra-ui/react";
+import { useState, type FormEvent } from "react";
+import { MessageList } from "~/shared/ui/messages";
+import type { ViewMessage } from "~/shared/errors/messages";
 
 type Props = {
   readonly title: string;
   readonly description: string;
-  readonly action: string;
+  readonly documentType: 'sales' | 'refunds';
   readonly messages?: readonly ViewMessage[] | undefined;
   readonly summary?:
     | {
@@ -17,69 +18,129 @@ type Props = {
     | undefined;
 };
 
-export function DocumentUploadPanel({ title, description, action, messages = [], summary }: Props) {
+export function DocumentUploadPanel({ title, description, documentType, messages = [], summary }: Props) {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfMessages, setPdfMessages] = useState<readonly ViewMessage[]>([]);
+  void summary;
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsGeneratingPdf(true);
+    setPdfMessages([]);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      formData.set("intent", "pdf");
+      const response = await fetch(`/api/document-pdf?documentType=${documentType}`, { method: "POST", body: formData });
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!response.ok || !contentType.includes("application/pdf")) {
+        const payload = contentType.includes("application/json") ? await response.json() : undefined;
+        const responseMessages =
+          payload && typeof payload === "object" && "messages" in payload && Array.isArray(payload.messages)
+            ? (payload.messages as readonly ViewMessage[])
+            : undefined;
+        setPdfMessages(
+          responseMessages ?? [
+            {
+              id: "pdf-generation-client",
+              severity: "error",
+              text: "Le PDF n'a pas pu etre genere. Verifiez le fichier CSV puis reessayez.",
+            },
+          ],
+        );
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileNameFromDisposition(response.headers.get("content-disposition")) ?? "document_etape.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPdfMessages([
+        {
+          id: "pdf-generation-network",
+          severity: "error",
+          text: "Le PDF n'a pas pu etre genere. Verifiez le fichier CSV puis reessayez.",
+        },
+      ]);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <Box>
-      <Stack gap='5'>
+      <Stack gap="5">
         <Box>
-          <Heading size='lg'>{title}</Heading>
-          <Text color='gray.600'>{description}</Text>
+          <Heading size="lg">{title}</Heading>
+          <Text color="gray.600">{description}</Text>
         </Box>
-        <MessageList messages={messages} />
-        {summary ? (
-          <Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap='3'>
-            <Box borderWidth='1px' borderColor='gray.200' borderRadius='md' p='3'>
-              <Text color='gray.600' textStyle='sm'>
-                Lignes
-              </Text>
-              <Text fontWeight='700'>{summary.totalRows}</Text>
-            </Box>
-            <Box borderWidth='1px' borderColor='gray.200' borderRadius='md' p='3'>
-              <Text color='gray.600' textStyle='sm'>
-                Total EUR
-              </Text>
-              <Text fontWeight='700'>{summary.totalEur.toFixed(2)}</Text>
-            </Box>
-            <Box borderWidth='1px' borderColor='gray.200' borderRadius='md' p='3'>
-              <Text color='gray.600' textStyle='sm'>
-                UE
-              </Text>
-              <Text fontWeight='700'>{summary.euTotal.toFixed(2)}</Text>
-            </Box>
-            <Box borderWidth='1px' borderColor='gray.200' borderRadius='md' p='3'>
-              <Text color='gray.600' textStyle='sm'>
-                Hors UE
-              </Text>
-              <Text fontWeight='700'>{summary.nonEuTotal.toFixed(2)}</Text>
-            </Box>
-          </Grid>
-        ) : null}
-        <form method='post' action={action} encType='multipart/form-data'>
-          <Stack gap='5'>
-            <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap='4'>
+        <MessageList messages={[...messages, ...pdfMessages]} />
+        <form method="post" encType="multipart/form-data" onSubmit={handleSubmit}>
+          <Stack gap="5">
+            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="4">
               <Field.Root>
-                <Field.Label>CSV eBay</Field.Label>
+                <Field.Label>{documentType === "sales" ? "CSV ventes eBay" : "CSV remboursements eBay"}</Field.Label>
                 <FileUpload.Root
-                  name='documentCsv'
-                  accept={{ 'text/csv': ['.csv'] }}
+                  name="documentCsv"
+                  accept={{ "text/csv": [".csv"] }}
                   maxFiles={Number.MAX_SAFE_INTEGER}
                 >
                   <FileUpload.HiddenInput />
-                  <FileUpload.Dropzone minH='32' borderWidth='1px' borderColor='gray.200' borderRadius='md' p='5'>
+                  <FileUpload.Dropzone
+                    minH="32"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    borderRadius="md"
+                    p="5"
+                  >
                     <FileUpload.DropzoneContent>
-                      <Text fontWeight='600'>Deposez les CSV ici</Text>
-                      <Text color='gray.600' textStyle='sm'>
+                      <Text fontWeight="600">Deposez les CSV ici</Text>
+                      <Text color="gray.600" textStyle="sm">
                         ou selectionnez un ou plusieurs fichiers
                       </Text>
                     </FileUpload.DropzoneContent>
                   </FileUpload.Dropzone>
                   <FileUpload.List showSize clearable />
                 </FileUpload.Root>
-                <Field.HelperText>Vous pouvez selectionner plusieurs fichiers CSV.</Field.HelperText>
+                <Field.HelperText>
+                  Vous pouvez selectionner plusieurs fichiers CSV.
+                </Field.HelperText>
               </Field.Root>
+              {documentType === "sales" ? (
+                <Field.Root>
+                  <Field.Label>CSV remboursements eBay</Field.Label>
+                  <FileUpload.Root
+                    name="refundCsv"
+                    accept={{ "text/csv": [".csv"] }}
+                    maxFiles={Number.MAX_SAFE_INTEGER}
+                  >
+                    <FileUpload.HiddenInput />
+                    <FileUpload.Dropzone
+                      minH="32"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                      p="5"
+                    >
+                      <FileUpload.DropzoneContent>
+                        <Text fontWeight="600">Deposez les CSV ici</Text>
+                        <Text color="gray.600" textStyle="sm">
+                          ou selectionnez un ou plusieurs fichiers
+                        </Text>
+                      </FileUpload.DropzoneContent>
+                    </FileUpload.Dropzone>
+                    <FileUpload.List showSize clearable />
+                  </FileUpload.Root>
+                  <Field.HelperText>Si aucun fichier n'est ajoute, les remboursements restent a zero.</Field.HelperText>
+                </Field.Root>
+              ) : null}
             </Grid>
-            <Button type='submit' colorPalette='brand' alignSelf='flex-start'>
-              Analyser
+            <Button type="submit" colorPalette="brand" alignSelf="flex-start" disabled={isGeneratingPdf}>
+              {isGeneratingPdf ? "Analyse et generation..." : "Analyser et generer le PDF"}
             </Button>
           </Stack>
         </form>
@@ -87,3 +148,8 @@ export function DocumentUploadPanel({ title, description, action, messages = [],
     </Box>
   );
 }
+
+const fileNameFromDisposition = (disposition: string | null): string | undefined => {
+  const match = disposition?.match(/filename="?(?<fileName>[^";]+)"?/);
+  return match?.groups?.fileName;
+};

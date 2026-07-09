@@ -56,7 +56,7 @@ export const previewDocument = (
           createdAt: readKnownColumn(row, 'Date de création de la transaction', document.mapping.date),
           orderNumber: readKnownColumn(row, 'Numéro de commande', document.mapping.orderNumber),
           shippingCountry: readKnownColumn(row, 'Pays de livraison', document.mapping.country),
-          itemNumber: row["Numéro de l'objet"] ?? '',
+          netAmount: amountRaw,
         });
 
         if (!hasAccountingAmount(amountRaw)) continue;

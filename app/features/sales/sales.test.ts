@@ -35,13 +35,13 @@ describe('sales aggregation', () => {
         createdAt: '2026-01-01',
         orderNumber: 'A',
         shippingCountry: 'BE',
-        itemNumber: '',
+        netAmount: '10',
       },
       {
         createdAt: '2026-01-02',
         orderNumber: 'B',
         shippingCountry: 'US',
-        itemNumber: '',
+        netAmount: '20',
       },
     ]);
     expect(result.data.byCountry).toEqual(
@@ -52,7 +52,7 @@ describe('sales aggregation', () => {
     );
   });
 
-  it('keeps the eBay item number for the sales PDF detail table', async () => {
+  it('keeps the net amount for the sales PDF detail table', async () => {
     const result = await Effect.runPromise(
       previewDocument({
         kind: 'sales',
@@ -72,7 +72,7 @@ describe('sales aggregation', () => {
         createdAt: '2026-01-01',
         orderNumber: 'A',
         shippingCountry: 'BE',
-        itemNumber: '116243686154',
+        netAmount: '10',
       },
     ]);
   });

@@ -41,7 +41,7 @@ export const DocumentOutputRow = Schema.Struct({
   createdAt: Schema.String,
   orderNumber: Schema.String,
   shippingCountry: Schema.String,
-  itemNumber: Schema.String,
+  netAmount: Schema.String,
 });
 export type DocumentOutputRow = Schema.Schema.Type<typeof DocumentOutputRow>;
 

@@ -1,68 +1,240 @@
-import { Effect } from 'effect';
-import { previewFeeInvoice } from '~/features/ebay-fees/service';
-import { previewDocument } from '~/features/sales/service';
+import { Effect } from "effect";
+import { previewFeeInvoice } from "~/features/ebay-fees/service";
+import { previewDocument } from "~/features/sales/service";
+import type { DocumentPreview } from "~/features/sales/schemas";
+import { countryNameFr, euCountryCodes } from "~/shared/countries/eu";
 import {
   controlCsvName,
   ebayFeesPdfName,
   feesSummaryPdfName,
-  refundsPdfName,
   salesPdfName,
-} from '~/shared/files/names';
-import { PdfService } from '~/shared/pdf/service';
-import { ZipService, type ZipEntry } from '~/shared/zip/service';
-import { MissingOriginalPdfError, type GenerationError } from './errors';
-import { generationSuccess } from './messages';
-import type { GeneratedPackage, GeneratePackageInput } from './schemas';
+} from "~/shared/files/names";
+import { formatEur } from "~/shared/money/money";
+import { PdfService, type PdfGenerationError } from "~/shared/pdf/service";
+import { ZipService, type ZipEntry } from "~/shared/zip/service";
+import { MissingOriginalPdfError, type GenerationError } from "./errors";
+import { generationSuccess } from "./messages";
+import type { GeneratedPackage, GeneratePackageInput } from "./schemas";
 
 const encoder = new TextEncoder();
 
 type SalesSummaryInput = {
-  readonly data: {
-    readonly byCountry: readonly {
-      readonly country: string;
-      readonly zone: 'EU' | 'NON_EU' | 'UNKNOWN';
-      readonly count: number;
-      readonly totalEur: number;
-    }[];
-    readonly totalRows: number;
-    readonly totalEur: number;
-    readonly nonEuTotal: number;
-    readonly unknownTotal: number;
-  };
+  readonly data: DocumentPreview;
 };
 
-const salesSummaryTable = (sales: SalesSummaryInput) => {
-  const euRows = sales.data.byCountry
-    .filter((row) => row.zone === 'EU')
-    .map((row) => [row.country, String(row.count), row.totalEur.toFixed(2)]);
+export const salesSummaryTable = (sales: SalesSummaryInput) => {
+  const byCountry = new Map(sales.data.byCountry.map((row) => [row.country, row]));
+  const euRows = euCountryCodes.map((country) => {
+    const row = byCountry.get(country);
+    return [countryNameFr(country), String(row?.count ?? 0), formatEur(row?.totalEur ?? 0)];
+  });
   const nonEuCount = sales.data.byCountry
-    .filter((row) => row.zone === 'NON_EU')
+    .filter((row) => row.zone === "NON_EU")
     .reduce((sum, row) => sum + row.count, 0);
   const unknownCount = sales.data.byCountry
-    .filter((row) => row.zone === 'UNKNOWN')
+    .filter((row) => row.zone === "UNKNOWN")
     .reduce((sum, row) => sum + row.count, 0);
 
   return [
-    ['Zone / pays', 'Lignes', 'Total EUR'],
+    ["Zone / pays", "Lignes", "Total EUR"],
     ...euRows,
-    ['Hors UE', String(nonEuCount), sales.data.nonEuTotal.toFixed(2)],
-    ['Pays non reconnus', String(unknownCount), sales.data.unknownTotal.toFixed(2)],
-    ['Total ventes', String(sales.data.totalRows), sales.data.totalEur.toFixed(2)],
+    ["Hors UE", String(nonEuCount), formatEur(sales.data.nonEuTotal)],
+    ["Pays non reconnus", String(unknownCount), formatEur(sales.data.unknownTotal)],
+    ["Total ventes", String(sales.data.totalRows), formatEur(sales.data.totalEur)],
   ];
 };
+
+export const generateSalesPdf = (input: {
+  readonly sales: DocumentPreview;
+  readonly periodLine?: string;
+  readonly generatedOn: string;
+}): Effect.Effect<Uint8Array, PdfGenerationError, PdfService> =>
+  Effect.gen(function* () {
+    const pdf = yield* PdfService;
+    return yield* pdf.summaryWithDetailsPdf({
+      title: "Ventes trimestrielles eBay",
+      lines: [
+        ...(input.periodLine ? [input.periodLine] : []),
+        `Date de generation: ${input.generatedOn}`,
+        `Total ventes: ${formatEur(input.sales.totalEur)}`,
+        `Total UE: ${formatEur(input.sales.euTotal)}`,
+        `Total hors UE: ${formatEur(input.sales.nonEuTotal)}`,
+      ],
+      summaryTable: salesSummaryTable({ data: input.sales }),
+      detailsTitle: "Detail des ventes",
+      detailsTable: [
+        [
+          "Date",
+          "Numéro de commande",
+          "Pays de livraison",
+          "Montant net",
+        ],
+        ...input.sales.outputRows.map((row) => [
+          row.createdAt,
+          row.orderNumber,
+          row.shippingCountry,
+          row.netAmount,
+        ]),
+      ],
+    });
+  });
+
+export const generateRefundsPdf = (input: {
+  readonly refunds: DocumentPreview;
+  readonly periodLine?: string;
+  readonly generatedOn: string;
+}): Effect.Effect<Uint8Array, PdfGenerationError, PdfService> =>
+  Effect.gen(function* () {
+    const pdf = yield* PdfService;
+    return yield* pdf.summaryPdf({
+      title: "Remboursements trimestriels eBay",
+      lines: [
+        ...(input.periodLine ? [input.periodLine] : []),
+        `Date de generation: ${input.generatedOn}`,
+        `Total remboursements: ${formatEur(input.refunds.totalEur)}`,
+        `Total UE: ${formatEur(input.refunds.euTotal)}`,
+        `Total hors UE: ${formatEur(input.refunds.nonEuTotal)}`,
+      ],
+      table: [
+        ["Pays", "Zone", "Lignes", "Total EUR"],
+        ...input.refunds.byCountry.map((row) => [
+          countryNameFr(row.country),
+          row.zone,
+          String(row.count),
+          formatEur(row.totalEur),
+        ]),
+      ],
+    });
+  });
+
+const amountByCountry = (document: DocumentPreview, normalizeAmount = (value: number) => value) =>
+  new Map(document.byCountry.map((row) => [row.country, { ...row, totalEur: normalizeAmount(row.totalEur) }]));
+
+const aggregateByZone = (
+  document: DocumentPreview,
+  zone: "NON_EU" | "UNKNOWN",
+  normalizeAmount = (value: number) => value,
+) =>
+  document.byCountry
+    .filter((row) => row.zone === zone)
+    .reduce(
+      (total, row) => ({
+        count: total.count + row.count,
+        totalEur: total.totalEur + normalizeAmount(row.totalEur),
+      }),
+      { count: 0, totalEur: 0 },
+    );
+
+export const salesRefundsSummaryTable = (input: {
+  readonly sales: DocumentPreview;
+  readonly refunds: DocumentPreview;
+}) => {
+  const salesByCountry = amountByCountry(input.sales);
+  const refundsByCountry = amountByCountry(input.refunds, Math.abs);
+  const euRows = euCountryCodes.map((country) => {
+    const sales = salesByCountry.get(country);
+    const refunds = refundsByCountry.get(country);
+    const salesTotal = sales?.totalEur ?? 0;
+    const refundsTotal = refunds?.totalEur ?? 0;
+    return [countryNameFr(country), "UE", formatEur(salesTotal), formatEur(refundsTotal), formatEur(salesTotal - refundsTotal)];
+  });
+
+  const nonEuSales = aggregateByZone(input.sales, "NON_EU");
+  const nonEuRefunds = aggregateByZone(input.refunds, "NON_EU", Math.abs);
+  const unknownSales = aggregateByZone(input.sales, "UNKNOWN");
+  const unknownRefunds = aggregateByZone(input.refunds, "UNKNOWN", Math.abs);
+  const refundsTotal = Math.abs(input.refunds.totalEur);
+
+  return [
+    ["Pays", "Zone", "Ventes EUR", "Remboursements EUR", "Total net EUR"],
+    ...euRows,
+    [
+      "Hors UE",
+      "Hors UE",
+      formatEur(nonEuSales.totalEur),
+      formatEur(nonEuRefunds.totalEur),
+      formatEur(nonEuSales.totalEur - nonEuRefunds.totalEur),
+    ],
+    [
+      "Pays non reconnus",
+      "Inconnu",
+      formatEur(unknownSales.totalEur),
+      formatEur(unknownRefunds.totalEur),
+      formatEur(unknownSales.totalEur - unknownRefunds.totalEur),
+    ],
+    [
+      "Total net",
+      "Toutes zones",
+      formatEur(input.sales.totalEur),
+      formatEur(refundsTotal),
+      formatEur(input.sales.totalEur - refundsTotal),
+    ],
+  ];
+};
+
+const detailRows = (document: DocumentPreview) =>
+  document.outputRows.map((row) => [row.createdAt, row.orderNumber, countryNameFr(row.shippingCountry), row.netAmount]);
+
+export const generateSalesRefundsPdf = (input: {
+  readonly sales: DocumentPreview;
+  readonly refunds: DocumentPreview;
+  readonly periodLine?: string;
+  readonly generatedOn: string;
+}): Effect.Effect<Uint8Array, PdfGenerationError, PdfService> =>
+  Effect.gen(function* () {
+    const pdf = yield* PdfService;
+    const refundsTotal = Math.abs(input.refunds.totalEur);
+    return yield* pdf.summaryWithDetailSectionsPdf({
+      title: "Ventes et remboursements eBay",
+      lines: [
+        ...(input.periodLine ? [input.periodLine] : []),
+        `Date de generation: ${input.generatedOn}`,
+        `Total ventes: ${formatEur(input.sales.totalEur)}`,
+        `Total remboursements: ${formatEur(refundsTotal)}`,
+        `Total net: ${formatEur(input.sales.totalEur - refundsTotal)}`,
+      ],
+      summaryTable: salesRefundsSummaryTable({ sales: input.sales, refunds: input.refunds }),
+      sections: [
+        {
+          title: "Detail des ventes",
+          table: [
+            [
+              "Date",
+              "Numéro de commande",
+              "Pays de livraison",
+              "Montant net",
+            ],
+            ...detailRows(input.sales),
+          ],
+        },
+        {
+          title: "Detail des remboursements",
+          table: [
+            [
+              "Date",
+              "Numéro de commande",
+              "Pays de livraison",
+              "Montant net",
+            ],
+            ...detailRows(input.refunds),
+          ],
+        },
+      ],
+    });
+  });
 
 export const generateQuarterPackage = (
   input: GeneratePackageInput,
 ): Effect.Effect<
   { readonly data: GeneratedPackage; readonly messages: ReturnType<typeof generationSuccess> },
   GenerationError,
-  PdfService | ZipService | import('~/shared/csv/service').CsvParser
+  PdfService | ZipService | import("~/shared/csv/service").CsvParser
 > =>
   Effect.gen(function* () {
     const pdf = yield* PdfService;
     const zip = yield* ZipService;
-    const sales = yield* previewDocument({ ...input.sales, kind: 'sales' });
-    const refunds = yield* previewDocument({ ...input.refunds, kind: 'refunds' });
+    const sales = yield* previewDocument({ ...input.sales, kind: "sales" });
+    const refunds = yield* previewDocument({ ...input.refunds, kind: "refunds" });
     const feePreviews = [];
 
     for (const fee of input.fees) {
@@ -75,40 +247,7 @@ export const generateQuarterPackage = (
 
     entries.push({
       name: salesPdfName(input.params.year, input.params.quarter),
-      data: yield* pdf.summaryWithDetailsPdf({
-        title: 'Ventes trimestrielles eBay',
-        lines: [
-          periodLine,
-          `Date de generation: ${generatedOn}`,
-          `Total ventes: ${sales.data.totalEur.toFixed(2)} EUR`,
-          `Total UE: ${sales.data.euTotal.toFixed(2)} EUR`,
-          `Total hors UE: ${sales.data.nonEuTotal.toFixed(2)} EUR`,
-        ],
-        summaryTable: salesSummaryTable(sales),
-        detailsTitle: 'Detail des ventes',
-        detailsTable: [
-          ['Date de création de la transaction', 'Numéro de commande', 'Pays de livraison', "Numéro de l'objet"],
-          ...sales.data.outputRows.map((row) => [row.createdAt, row.orderNumber, row.shippingCountry, row.itemNumber]),
-        ],
-      }),
-    });
-
-    entries.push({
-      name: refundsPdfName(input.params.year, input.params.quarter),
-      data: yield* pdf.summaryPdf({
-        title: 'Remboursements trimestriels eBay',
-        lines: [
-          periodLine,
-          `Date de generation: ${generatedOn}`,
-          `Total remboursements: ${refunds.data.totalEur.toFixed(2)} EUR`,
-          `Total UE: ${refunds.data.euTotal.toFixed(2)} EUR`,
-          `Total hors UE: ${refunds.data.nonEuTotal.toFixed(2)} EUR`,
-        ],
-        table: [
-          ['Pays', 'Zone', 'Lignes', 'Total EUR'],
-          ...refunds.data.byCountry.map((row) => [row.country, row.zone, String(row.count), row.totalEur.toFixed(2)]),
-        ],
-      }),
+      data: yield* generateSalesRefundsPdf({ sales: sales.data, refunds: refunds.data, periodLine, generatedOn }),
     });
 
     for (const feeResult of feePreviews) {
@@ -122,15 +261,19 @@ export const generateQuarterPackage = (
         data: yield* pdf.withAnnexPage({
           originalPdf: original.bytes,
           originalFileName: original.fileName,
-          title: 'Annexe - Conversion comptable en EUR',
-          lines: [`Mois: ${fee.month}`, `Annee: ${fee.year}`, `Fichier PDF original: ${original.fileName}`],
+          title: "Annexe - Conversion comptable en EUR",
+          lines: [
+            `Mois: ${fee.month}`,
+            `Annee: ${fee.year}`,
+            `Fichier PDF original: ${original.fileName}`,
+          ],
           table: [
-            ['Devise', 'Montant devise', 'Taux', 'Montant EUR'],
+            ["Devise", "Montant devise", "Taux", "Montant EUR"],
             ...fee.totalsByCurrency.map((row) => [
               row.currency,
               row.originalTotal.toFixed(2),
               String(row.rateToEur),
-              row.eurTotal.toFixed(2),
+              formatEur(row.eurTotal),
             ]),
           ],
           totalEur: fee.totalEur,
@@ -142,11 +285,15 @@ export const generateQuarterPackage = (
     entries.push({
       name: feesSummaryPdfName(input.params.year, input.params.quarter),
       data: yield* pdf.summaryPdf({
-        title: 'Synthese frais eBay',
-        lines: [periodLine, `Total frais global: ${totalFees.toFixed(2)} EUR`],
+        title: "Synthese frais eBay",
+        lines: [periodLine, `Total frais global: ${formatEur(totalFees)}`],
         table: [
-          ['Facture', 'Mois', 'Total EUR'],
-          ...feePreviews.map((fee) => [fee.data.invoiceId, fee.data.month, fee.data.totalEur.toFixed(2)]),
+          ["Facture", "Mois", "Total EUR"],
+          ...feePreviews.map((fee) => [
+            fee.data.invoiceId,
+            fee.data.month,
+            formatEur(fee.data.totalEur),
+          ]),
         ],
       }),
     });
@@ -155,11 +302,13 @@ export const generateQuarterPackage = (
       name: controlCsvName(input.params.year, input.params.quarter),
       data: encoder.encode(
         [
-          'type,reference,total_eur',
+          "type,reference,total_eur",
           `ventes,${input.params.quarter},${sales.data.totalEur.toFixed(2)}`,
           `remboursements,${input.params.quarter},${refunds.data.totalEur.toFixed(2)}`,
-          ...feePreviews.map((fee) => `frais,${fee.data.invoiceId},${fee.data.totalEur.toFixed(2)}`),
-        ].join('\n'),
+          ...feePreviews.map(
+            (fee) => `frais,${fee.data.invoiceId},${fee.data.totalEur.toFixed(2)}`,
+          ),
+        ].join("\n"),
       ),
     });
 

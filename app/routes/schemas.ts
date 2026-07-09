@@ -1,18 +1,19 @@
-import { Schema } from 'effect';
+import { Schema } from "effect";
 
 export const EmptyQuery = Schema.Struct({});
 
 export const CsvPreviewQuery = Schema.Struct({
-  documentType: Schema.optional(Schema.Literal('sales', 'refunds', 'fees')),
+  documentType: Schema.optional(Schema.Literal("sales", "refunds", "fees")),
 });
 
 export const WizardSetupActionForm = Schema.Struct({
   year: Schema.NumberFromString,
-  quarter: Schema.Literal('T1', 'T2', 'T3', 'T4'),
-  accountingCurrency: Schema.Literal('EUR'),
+  quarter: Schema.Literal("T1", "T2", "T3", "T4"),
+  accountingCurrency: Schema.Literal("EUR"),
 });
 
 export const DocumentActionForm = Schema.Struct({
+  intent: Schema.optional(Schema.Literal("preview", "pdf")),
   date: Schema.optional(Schema.String),
   orderNumber: Schema.optional(Schema.String),
   country: Schema.optional(Schema.String),
