@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "import/no-unassigned-import": "off",
+    "no-await-in-loop": "off",
+    "react/react-in-jsx-scope": "off"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "worker": true,
+    "node": true,
+    "vitest": true
+  },
+  "settings": {
+    "jsx-a11y": {
+      "polymorphicPropName": "as"
+    },
+    "react": {
+      "version": "19.1.0"
+    },
+    "vitest": {
+      "typecheck": true
+    }
+  }
+}

@@ -15,7 +15,9 @@ describe('csv parser', () => {
     const preview = await parseCsv('Date,Commande,Pays,Montant\n2026-01-01,A,BE,10');
 
     expect(preview.columns).toEqual(['Date', 'Commande', 'Pays', 'Montant']);
-    expect(preview.rows).toEqual([{ Date: '2026-01-01', Commande: 'A', Pays: 'BE', Montant: '10' }]);
+    expect(preview.rows).toEqual([
+      { Date: '2026-01-01', Commande: 'A', Pays: 'BE', Montant: '10' },
+    ]);
   });
 
   it('skips the eBay transaction report preamble before the real header', async () => {

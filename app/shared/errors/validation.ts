@@ -1,7 +1,9 @@
 import type { InputValidationError } from '~/shared/effect/validation';
 import { error, type ViewMessage } from './messages';
 
-export const validationErrorMessages = (validationError: InputValidationError): readonly ViewMessage[] => [
+export const validationErrorMessages = (
+  validationError: InputValidationError,
+): readonly ViewMessage[] => [
   error(
     `${validationError.scope}-validation`,
     validationError.scope === 'json'

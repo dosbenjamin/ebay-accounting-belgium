@@ -44,11 +44,17 @@ describe('pdf service', () => {
           sections: [
             {
               title: 'Détail des ventes',
-              table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-01', 'A', 'BE', '1']],
+              table: [
+                ['Date', 'Commande', 'Pays', 'Objet'],
+                ['2026-01-01', 'A', 'BE', '1'],
+              ],
             },
             {
               title: 'Détail des remboursements',
-              table: [['Date', 'Commande', 'Pays', 'Objet'], ['2026-01-02', 'B', 'BE', '2']],
+              table: [
+                ['Date', 'Commande', 'Pays', 'Objet'],
+                ['2026-01-02', 'B', 'BE', '2'],
+              ],
             },
           ],
         });

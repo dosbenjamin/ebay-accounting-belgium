@@ -1,4 +1,4 @@
-import { Data, Effect, Schema } from "effect";
+import { Data, Effect, Schema } from 'effect';
 
 export const Currency = Schema.String.pipe(Schema.pattern(/^[A-Z]{3}$/));
 export type Currency = Schema.Schema.Type<typeof Currency>;
@@ -9,7 +9,7 @@ export const Money = Schema.Struct({
 });
 export type Money = Schema.Schema.Type<typeof Money>;
 
-export class MoneyParseError extends Data.TaggedError("MoneyParseError")<{
+export class MoneyParseError extends Data.TaggedError('MoneyParseError')<{
   readonly value: string;
   readonly column?: string;
 }> {}
@@ -25,13 +25,13 @@ export const parseMoneyAmount = (
   Effect.try({
     try: () => {
       const normalized = raw
-        .replace(/\s/g, "")
-        .replace(/[€$£]/g, "")
-        .replace(/(?<=\d),(?=\d{1,2}$)/, ".")
-        .replace(/,/g, "");
+        .replace(/\s/g, '')
+        .replace(/[€$£]/g, '')
+        .replace(/(?<=\d),(?=\d{1,2}$)/, '.')
+        .replace(/,/g, '');
       const amount = Number(normalized);
       if (!Number.isFinite(amount)) {
-        throw new Error("Invalid amount");
+        throw new Error('Invalid amount');
       }
       return amount;
     },

@@ -13,14 +13,19 @@ export type ZipEntry = {
 export class ZipService extends Context.Tag('ZipService')<
   ZipService,
   {
-    readonly create: (entries: readonly ZipEntry[]) => Effect.Effect<Uint8Array, ZipGenerationError>;
+    readonly create: (
+      entries: readonly ZipEntry[],
+    ) => Effect.Effect<Uint8Array, ZipGenerationError>;
   }
 >() {}
 
 export const ZipServiceLive = Layer.succeed(ZipService, {
-  create: (entries) =>
-    Effect.try({
-      try: () => zipSync(Object.fromEntries(entries.map((entry) => [entry.name, entry.data]))),
+  create: Effect.fn('zip.create')(function* (entries: readonly ZipEntry[]) {
+    yield* Effect.annotateCurrentSpan('zip.entry_count', entries.length);
+    return yield* Effect.try({
+      try: () =>
+        zipSync(Object.fromEntries(entries.map((entry: ZipEntry) => [entry.name, entry.data]))),
       catch: () => new ZipGenerationError({ message: 'Génération ZIP impossible.' }),
-    }),
+    });
+  }),
 });

@@ -10,48 +10,142 @@ import {
   Stack,
   Text,
   createListCollection,
-} from "@chakra-ui/react";
-import { Effect } from "effect";
-import { useState, type FormEvent } from "react";
-import { useActionData } from "react-router";
-import { generatePackageFromUploadForm, zipResponse } from "~/features/generation/form-upload";
-import { generationErrorMessages } from "~/features/generation/messages";
-import { LiveWorkerLayer } from "~/shared/effect/layers.server";
-import { readFormData } from "~/shared/effect/validation";
-import type { ViewMessage } from "~/shared/errors/messages";
-import { validationErrorMessages } from "~/shared/errors/validation";
-import { MessageList } from "~/shared/ui/messages";
+} from '@chakra-ui/react';
+import { Effect, Schema } from 'effect';
+import { useState, type FormEvent } from 'react';
+import { useActionData } from 'react-router';
+import { generatePackageFromUploadForm, zipResponse } from '~/features/generation/form-upload';
+import { generationErrorMessages } from '~/features/generation/messages';
+import { LiveWorkerLayer } from '~/shared/effect/layers.server';
+import { readFormData } from '~/shared/effect/validation';
+import { ViewMessage as ViewMessageSchema, type ViewMessage } from '~/shared/errors/messages';
+import { validationErrorMessages } from '~/shared/errors/validation';
+import { maxRefundCsvFiles, maxSalesCsvFiles } from '~/shared/files/upload';
+import { MessageList } from '~/shared/ui/messages';
 
 const quarterCollection = createListCollection({
   items: [
-    { label: "T1", value: "T1" },
-    { label: "T2", value: "T2" },
-    { label: "T3", value: "T3" },
-    { label: "T4", value: "T4" },
+    { label: 'T1', value: 'T1' },
+    { label: 'T2', value: 'T2' },
+    { label: 'T3', value: 'T3' },
+    { label: 'T4', value: 'T4' },
   ],
 });
 
 type ActionData = { readonly ok: false; readonly messages: readonly ViewMessage[] };
 
-const fileNameFromDisposition = (disposition: string | null): string | undefined =>
-  disposition?.match(/filename="?(?<fileName>[^";]+)"?/)?.groups?.fileName;
+const ApiFailurePayload = Schema.Struct({
+  messages: Schema.Array(ViewMessageSchema),
+});
 
-export const loader = async () => ({ step: "index" });
+const fileNameFromDisposition = (disposition: string | null): string | undefined =>
+  disposition?.match(/filename="?(?<fileName>[^";]+)"?/)?.groups?.['fileName'];
+
+const zipGenerationClientError: readonly ViewMessage[] = [
+  {
+    id: 'zip-generation-client',
+    severity: 'error',
+    text: "Le ZIP n'a pas pu être généré. Vérifiez les fichiers puis réessayez.",
+  },
+];
+
+const zipGenerationNetworkError: readonly ViewMessage[] = [
+  {
+    id: 'zip-generation-network',
+    severity: 'error',
+    text: "Le ZIP n'a pas pu être généré. Vérifiez les fichiers puis réessayez.",
+  },
+];
+
+const isZipResponse = (response: Response): boolean =>
+  response.ok && (response.headers.get('content-type') ?? '').includes('application/zip');
+
+const decodePayloadMessages = (payload: unknown): Effect.Effect<readonly ViewMessage[], never> =>
+  Schema.decodeUnknown(ApiFailurePayload)(payload).pipe(
+    Effect.map((decoded) => decoded.messages),
+    Effect.orElseSucceed(() => zipGenerationClientError),
+  );
+
+const responseJsonPayload = Effect.fn('wizard.responseJsonPayload')(function* (response: Response) {
+  return yield* Effect.tryPromise({
+    try: () =>
+      (response.headers.get('content-type') ?? '').includes('application/json')
+        ? response.json()
+        : Promise.resolve(undefined),
+    catch: () => undefined,
+  }).pipe(Effect.orElseSucceed(() => undefined));
+});
+
+const failureMessagesFromResponse = Effect.fn('wizard.failureMessagesFromResponse')(function* (
+  response: Response,
+) {
+  const payload = yield* responseJsonPayload(response);
+  return yield* decodePayloadMessages(payload);
+});
+
+const submitZipForm = Effect.fn('wizard.submitZipForm')(function* (formData: FormData) {
+  const response = yield* Effect.tryPromise({
+    try: () => fetch('/api/generate-upload', { method: 'POST', body: formData }),
+    catch: () => zipGenerationNetworkError,
+  });
+
+  if (!isZipResponse(response)) {
+    return yield* failureMessagesFromResponse(response).pipe(Effect.flatMap(Effect.fail));
+  }
+
+  return yield* Effect.tryPromise({
+    try: async () => ({
+      blob: await response.blob(),
+      fileName:
+        fileNameFromDisposition(response.headers.get('content-disposition')) ??
+        'dossier_comptable_ebay.zip',
+    }),
+    catch: () => zipGenerationClientError,
+  });
+});
+
+const downloadBlob = (blob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const actionMessages = (actionData: ActionData | undefined): readonly ViewMessage[] => {
+  if (!actionData) {
+    return [];
+  }
+  return actionData.messages;
+};
+
+const generateButtonLabel = (isGenerating: boolean): string => {
+  if (isGenerating) {
+    return 'Génération du ZIP...';
+  }
+  return 'Générer le ZIP comptable';
+};
+
+export const loader = async () => ({ step: 'index' });
 
 export const action = async ({ request }: { request: Request }): Promise<ActionData | Response> => {
   const program = readFormData(request).pipe(
     Effect.flatMap((formData) => generatePackageFromUploadForm(formData)),
     Effect.provide(LiveWorkerLayer),
-    Effect.match({
-      onFailure: (cause) => ({
+    Effect.map((result) => zipResponse(result.data.bytes, result.data.fileName)),
+    Effect.catchTag('InputValidationError', (cause) =>
+      Effect.succeed({
         ok: false as const,
-        messages:
-          cause._tag === "InputValidationError"
-            ? validationErrorMessages(cause)
-            : generationErrorMessages(cause),
+        messages: validationErrorMessages(cause),
       }),
-      onSuccess: (result) => zipResponse(result.data.bytes, result.data.fileName),
-    }),
+    ),
+    Effect.catchAll((cause) =>
+      Effect.succeed({
+        ok: false as const,
+        messages: generationErrorMessages(cause),
+      }),
+    ),
   );
 
   return Effect.runPromise(program);
@@ -63,58 +157,20 @@ export default function WizardIndexRoute() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [clientMessages, setClientMessages] = useState<readonly ViewMessage[]>([]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsGenerating(true);
     setClientMessages([]);
 
-    try {
-      const response = await fetch("/api/generate-upload", {
-        method: "POST",
-        body: new FormData(event.currentTarget),
-      });
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!response.ok || !contentType.includes("application/zip")) {
-        const payload = contentType.includes("application/json")
-          ? await response.json()
-          : undefined;
-        const messages =
-          payload &&
-          typeof payload === "object" &&
-          "messages" in payload &&
-          Array.isArray(payload.messages)
-            ? (payload.messages as readonly ViewMessage[])
-            : [
-                {
-                  id: "zip-generation-client",
-                  severity: "error" as const,
-                  text: "Le ZIP n'a pas pu être généré. Vérifiez les fichiers puis réessayez.",
-                },
-              ];
-        setClientMessages(messages);
-        return;
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download =
-        fileNameFromDisposition(response.headers.get("content-disposition")) ??
-        "dossier_comptable_ebay.zip";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setClientMessages([
-        {
-          id: "zip-generation-network",
-          severity: "error",
-          text: "Le ZIP n'a pas pu être généré. Vérifiez les fichiers puis réessayez.",
-        },
-      ]);
-    } finally {
-      setIsGenerating(false);
-    }
+    Effect.runPromise(
+      submitZipForm(new FormData(event.currentTarget)).pipe(
+        Effect.match({
+          onFailure: (messages) => setClientMessages(messages),
+          onSuccess: ({ blob, fileName }) => downloadBlob(blob, fileName),
+        }),
+        Effect.tap(() => Effect.sync(() => setIsGenerating(false))),
+      ),
+    );
   };
 
   return (
@@ -125,25 +181,20 @@ export default function WizardIndexRoute() {
           Ajoutez les fichiers du trimestre, puis générez le ZIP comptable final.
         </Text>
       </Box>
-      <MessageList
-        messages={[
-          ...(actionData && "messages" in actionData ? actionData.messages : []),
-          ...clientMessages,
-        ]}
-      />
+      <MessageList messages={[...actionMessages(actionData), ...clientMessages]} />
       <form method="post" action="?index" encType="multipart/form-data" onSubmit={handleSubmit}>
         <Stack gap="6">
           <Box borderWidth="1px" borderColor="gray.200" borderRadius="md" p="4">
             <Stack gap="4">
               <Heading size="sm">Période</Heading>
-              <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap="4">
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap="4">
                 <Field.Root required>
                   <Field.Label>Année</Field.Label>
                   <Input name="year" type="number" defaultValue={new Date().getFullYear()} />
                 </Field.Root>
                 <Field.Root required>
                   <Field.Label>Trimestre</Field.Label>
-                  <Select.Root name="quarter" collection={quarterCollection} defaultValue={["T1"]}>
+                  <Select.Root name="quarter" collection={quarterCollection} defaultValue={['T1']}>
                     <Select.HiddenSelect />
                     <Select.Control>
                       <Select.Trigger>
@@ -176,20 +227,20 @@ export default function WizardIndexRoute() {
           <Box borderWidth="1px" borderColor="gray.200" borderRadius="md" p="4">
             <Stack gap="4">
               <Heading size="sm">Ventes et remboursements</Heading>
-              <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="4">
+              <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap="4">
                 <UploadField
                   name="salesCsv"
                   label="CSV ventes eBay"
                   dropText="Déposez les CSV ventes ici"
                   helperText="Un ou plusieurs fichiers CSV de ventes."
-                  maxFiles={Number.MAX_SAFE_INTEGER}
+                  maxFiles={maxSalesCsvFiles}
                 />
                 <UploadField
                   name="refundCsv"
                   label="CSV remboursements eBay"
                   dropText="Déposez les CSV remboursements ici"
                   helperText="Optionnel: sans fichier, les remboursements restent à zéro."
-                  maxFiles={Number.MAX_SAFE_INTEGER}
+                  maxFiles={maxRefundCsvFiles}
                 />
               </Grid>
             </Stack>
@@ -208,8 +259,8 @@ export default function WizardIndexRoute() {
                       <FileUpload.Root
                         name={`invoiceFiles_${index}`}
                         accept={{
-                          "application/pdf": [".pdf"],
-                          "text/csv": [".csv"],
+                          'application/pdf': ['.pdf'],
+                          'text/csv': ['.csv'],
                         }}
                         maxFiles={2}
                         width="100%"
@@ -234,9 +285,9 @@ export default function WizardIndexRoute() {
                           width="100%"
                           css={{
                             "& [data-part='item-group']": {
-                              display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                              gap: "var(--chakra-spacing-3)",
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                              gap: 'var(--chakra-spacing-3)',
                             },
                           }}
                         >
@@ -276,7 +327,7 @@ export default function WizardIndexRoute() {
             alignSelf="flex-start"
             disabled={isGenerating}
           >
-            {isGenerating ? "Génération du ZIP..." : "Générer le ZIP comptable"}
+            {generateButtonLabel(isGenerating)}
           </Button>
         </Stack>
       </form>
@@ -296,7 +347,7 @@ function UploadField(props: {
       <Field.Label>{props.label}</Field.Label>
       <FileUpload.Root
         name={props.name}
-        accept={{ "text/csv": [".csv"] }}
+        accept={{ 'text/csv': ['.csv'] }}
         maxFiles={props.maxFiles}
         width="100%"
       >

@@ -12,35 +12,49 @@ export type PdfDetailsSection = {
   readonly table: readonly PdfTableRow[];
 };
 
+type SummaryPdfInput = {
+  readonly title: string;
+  readonly lines: readonly string[];
+  readonly table?: readonly PdfTableRow[];
+};
+
+type SummaryWithDetailsPdfInput = {
+  readonly title: string;
+  readonly lines: readonly string[];
+  readonly summaryTable: readonly PdfTableRow[];
+  readonly detailsTitle: string;
+  readonly detailsTable: readonly PdfTableRow[];
+};
+
+type SummaryWithDetailSectionsPdfInput = {
+  readonly title: string;
+  readonly lines: readonly string[];
+  readonly summaryTable: readonly PdfTableRow[];
+  readonly sections: readonly PdfDetailsSection[];
+};
+
+type WithAnnexPageInput = {
+  readonly originalPdf: Uint8Array;
+  readonly originalFileName: string;
+  readonly title: string;
+  readonly lines: readonly string[];
+  readonly table: readonly PdfTableRow[];
+  readonly totalEur: number;
+};
+
 export class PdfService extends Context.Tag('PdfService')<
   PdfService,
   {
-    readonly summaryPdf: (input: {
-      readonly title: string;
-      readonly lines: readonly string[];
-      readonly table?: readonly PdfTableRow[];
-    }) => Effect.Effect<Uint8Array, PdfGenerationError>;
-    readonly summaryWithDetailsPdf: (input: {
-      readonly title: string;
-      readonly lines: readonly string[];
-      readonly summaryTable: readonly PdfTableRow[];
-      readonly detailsTitle: string;
-      readonly detailsTable: readonly PdfTableRow[];
-    }) => Effect.Effect<Uint8Array, PdfGenerationError>;
-    readonly summaryWithDetailSectionsPdf: (input: {
-      readonly title: string;
-      readonly lines: readonly string[];
-      readonly summaryTable: readonly PdfTableRow[];
-      readonly sections: readonly PdfDetailsSection[];
-    }) => Effect.Effect<Uint8Array, PdfGenerationError>;
-    readonly withAnnexPage: (input: {
-      readonly originalPdf: Uint8Array;
-      readonly originalFileName: string;
-      readonly title: string;
-      readonly lines: readonly string[];
-      readonly table: readonly PdfTableRow[];
-      readonly totalEur: number;
-    }) => Effect.Effect<Uint8Array, PdfGenerationError>;
+    readonly summaryPdf: (input: SummaryPdfInput) => Effect.Effect<Uint8Array, PdfGenerationError>;
+    readonly summaryWithDetailsPdf: (
+      input: SummaryWithDetailsPdfInput,
+    ) => Effect.Effect<Uint8Array, PdfGenerationError>;
+    readonly summaryWithDetailSectionsPdf: (
+      input: SummaryWithDetailSectionsPdfInput,
+    ) => Effect.Effect<Uint8Array, PdfGenerationError>;
+    readonly withAnnexPage: (
+      input: WithAnnexPageInput,
+    ) => Effect.Effect<Uint8Array, PdfGenerationError>;
   }
 >() {}
 
@@ -56,7 +70,9 @@ const drawLines = async (
   forceNewPage = false,
 ) => {
   let page =
-    forceNewPage || pdf.getPageCount() === 0 ? addPage(pdf) : (pdf.getPages()[pdf.getPageCount() - 1] ?? addPage(pdf));
+    forceNewPage || pdf.getPageCount() === 0
+      ? addPage(pdf)
+      : (pdf.getPages()[pdf.getPageCount() - 1] ?? addPage(pdf));
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let y = 790;
@@ -86,17 +102,24 @@ const drawLines = async (
 };
 
 export const PdfServiceLive = Layer.succeed(PdfService, {
-  summaryPdf: (input) =>
-    Effect.tryPromise({
+  summaryPdf: Effect.fn('pdf.summaryPdf')(function* (input: SummaryPdfInput) {
+    yield* Effect.annotateCurrentSpan('pdf.title', input.title);
+    yield* Effect.annotateCurrentSpan('pdf.line_count', input.lines.length);
+    return yield* Effect.tryPromise({
       try: async () => {
         const pdf = await PDFDocument.create();
         await drawLines(pdf, input.title, input.lines, input.table);
         return pdf.save();
       },
       catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
-    }),
-  summaryWithDetailsPdf: (input) =>
-    Effect.tryPromise({
+    });
+  }),
+  summaryWithDetailsPdf: Effect.fn('pdf.summaryWithDetailsPdf')(function* (
+    input: SummaryWithDetailsPdfInput,
+  ) {
+    yield* Effect.annotateCurrentSpan('pdf.title', input.title);
+    yield* Effect.annotateCurrentSpan('pdf.detail_rows', input.detailsTable.length);
+    return yield* Effect.tryPromise({
       try: async () => {
         const pdf = await PDFDocument.create();
         await drawLines(pdf, input.title, input.lines, input.summaryTable);
@@ -104,9 +127,14 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         return pdf.save();
       },
       catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
-    }),
-  summaryWithDetailSectionsPdf: (input) =>
-    Effect.tryPromise({
+    });
+  }),
+  summaryWithDetailSectionsPdf: Effect.fn('pdf.summaryWithDetailSectionsPdf')(function* (
+    input: SummaryWithDetailSectionsPdfInput,
+  ) {
+    yield* Effect.annotateCurrentSpan('pdf.title', input.title);
+    yield* Effect.annotateCurrentSpan('pdf.section_count', input.sections.length);
+    return yield* Effect.tryPromise({
       try: async () => {
         const pdf = await PDFDocument.create();
         await drawLines(pdf, input.title, input.lines, input.summaryTable);
@@ -116,9 +144,12 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
         return pdf.save();
       },
       catch: () => new PdfGenerationError({ message: 'Génération PDF impossible.' }),
-    }),
-  withAnnexPage: (input) =>
-    Effect.tryPromise({
+    });
+  }),
+  withAnnexPage: Effect.fn('pdf.withAnnexPage')(function* (input: WithAnnexPageInput) {
+    yield* Effect.annotateCurrentSpan('pdf.original_file', input.originalFileName);
+    yield* Effect.annotateCurrentSpan('pdf.total_eur', input.totalEur);
+    return yield* Effect.tryPromise({
       try: async () => {
         const annex = await PDFDocument.create();
         await drawLines(
@@ -141,5 +172,6 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
           message: "Impossible d'ajouter l'annexe à la facture eBay.",
           fileName: input.originalFileName,
         }),
-    }),
+    });
+  }),
 });

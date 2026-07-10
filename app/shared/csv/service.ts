@@ -36,15 +36,22 @@ const ebayTransactionHeaderColumns = new Set([
   'montant net',
 ]);
 
-const uniqueNonEmptyCount = (row: readonly string[]): number => new Set(row.filter((cell) => cell !== '')).size;
+const uniqueNonEmptyCount = (row: readonly string[]): number =>
+  new Set(row.filter((cell) => cell !== '')).size;
 
 const ebayTransactionHeaderScore = (row: readonly string[]): number =>
-  row.reduce((score, cell) => score + (ebayTransactionHeaderColumns.has(normalizeHeaderKey(cell)) ? 1 : 0), 0);
+  row.reduce(
+    (score, cell) => score + (ebayTransactionHeaderColumns.has(normalizeHeaderKey(cell)) ? 1 : 0),
+    0,
+  );
 
 const findEbayTransactionHeaderIndex = (rows: readonly (readonly string[])[]): number =>
   rows.findIndex((row) => ebayTransactionHeaderScore(row) >= 3);
 
-const hasSameShapeDataRow = (rows: readonly (readonly string[])[], headerIndex: number): boolean => {
+const hasSameShapeDataRow = (
+  rows: readonly (readonly string[])[],
+  headerIndex: number,
+): boolean => {
   const headerLength = rows[headerIndex]?.length ?? 0;
   const nextRow = rows.slice(headerIndex + 1).find((row) => row.some((cell) => cell !== ''));
   return Boolean(nextRow && nextRow.length >= Math.max(2, Math.floor(headerLength * 0.6)));
@@ -63,12 +70,16 @@ const isHeaderCandidate = (rows: readonly (readonly string[])[], index: number):
 
 const findHeaderIndex = (rows: readonly (readonly string[])[]): number => {
   const ebayHeaderIndex = findEbayTransactionHeaderIndex(rows);
-  return ebayHeaderIndex >= 0 ? ebayHeaderIndex : rows.findIndex((_, index) => isHeaderCandidate(rows, index));
+  return ebayHeaderIndex >= 0
+    ? ebayHeaderIndex
+    : rows.findIndex((_, index) => isHeaderCandidate(rows, index));
 };
 
 export const CsvParserLive = Layer.succeed(CsvParser, {
-  parse: (input, fileName) =>
-    Effect.try({
+  parse: Effect.fn('csv.parse')(function* (input: string, fileName?: string) {
+    yield* Effect.annotateCurrentSpan('file.name', fileName ?? 'unknown');
+    yield* Effect.annotateCurrentSpan('csv.bytes', input.length);
+    return yield* Effect.try({
       try: () => {
         const parsed = Papa.parse<string[]>(input, {
           header: false,
@@ -92,7 +103,9 @@ export const CsvParserLive = Layer.succeed(CsvParser, {
         const columns = rawRows[headerIndex] ?? [];
         const rows = rawRows
           .slice(headerIndex + 1)
-          .map((row) => Object.fromEntries(columns.map((column, index) => [column, normalizeCell(row[index])])));
+          .map((row) =>
+            Object.fromEntries(columns.map((column, index) => [column, normalizeCell(row[index])])),
+          );
         return {
           columns,
           rows,
@@ -107,5 +120,6 @@ export const CsvParserLive = Layer.succeed(CsvParser, {
               ...(fileName ? { fileName } : {}),
               message: 'Impossible de lire le CSV.',
             }),
-    }),
+    });
+  }),
 });

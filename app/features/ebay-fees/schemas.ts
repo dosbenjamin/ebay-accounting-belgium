@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema } from 'effect';
 
 export const FeeCsvMapping = Schema.Struct({
   currency: Schema.String,
@@ -8,8 +8,8 @@ export const FeeCsvMapping = Schema.Struct({
 export type FeeCsvMapping = Schema.Schema.Type<typeof FeeCsvMapping>;
 
 export const ebayInvoiceFeeCsvMapping: FeeCsvMapping = {
-  currency: "Devise",
-  amount: "Montant total",
+  currency: 'Devise',
+  amount: 'Montant total',
 };
 
 export const ManualRate = Schema.Struct({
@@ -36,7 +36,7 @@ export const FeeCurrencyTotal = Schema.Struct({
   originalTotal: Schema.Number,
   rateToEur: Schema.Number,
   eurTotal: Schema.Number,
-  rateSource: Schema.Literal("csv_eur_amount", "manual_rate", "manual_total", "live_ecb"),
+  rateSource: Schema.Literal('csv_eur_amount', 'manual_rate', 'manual_total', 'live_ecb'),
 });
 export type FeeCurrencyTotal = Schema.Schema.Type<typeof FeeCurrencyTotal>;
 

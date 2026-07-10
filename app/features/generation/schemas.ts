@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { FeeInvoiceInput, FeeInvoicePreview } from '~/features/ebay-fees/schemas';
+import { FeeInvoiceInput } from '~/features/ebay-fees/schemas';
 import { DocumentPreviewInput } from '~/features/sales/schemas';
 
 export const Quarter = Schema.Literal('T1', 'T2', 'T3', 'T4');
@@ -34,5 +34,3 @@ export const GeneratedPackage = Schema.Struct({
   manifest: Schema.Array(Schema.String),
 });
 export type GeneratedPackage = Schema.Schema.Type<typeof GeneratedPackage>;
-
-export type FeeInvoicePreviewForPdf = FeeInvoicePreview;

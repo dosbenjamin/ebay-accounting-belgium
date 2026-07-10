@@ -1,34 +1,26 @@
-import { error, success, type ViewMessage } from "~/shared/errors/messages";
-import type { EbayFeesError } from "./errors";
+import { Match } from 'effect';
+import { error, type ViewMessage } from '~/shared/errors/messages';
+import type { EbayFeesError } from './errors';
 
-export const ebayFeesErrorMessages = (errorValue: EbayFeesError): readonly ViewMessage[] => {
-  switch (errorValue._tag) {
-    case "MissingExchangeRateError":
-      return [
-        error(
-          "missing-exchange-rate",
-          `Le taux BCE EUR manque pour ${errorValue.currency} dans la facture ${errorValue.invoiceId}. Vérifiez la devise ou ajoutez un montant EUR dans le CSV.`,
-          { invoiceId: errorValue.invoiceId, currency: errorValue.currency },
-        ),
-      ];
-    case "FeeMappingError":
-      return [
-        error(
-          "fee-mapping",
-          `La colonne "${errorValue.column}" est introuvable dans ${errorValue.fileName}. Corrigez le mapping des frais.`,
-          { fileName: errorValue.fileName, column: errorValue.column },
-        ),
-      ];
-    case "FeePreviewError":
-      return [error("fee-preview", errorValue.message)];
-    case "ExchangeRateLookupError":
-      return [error("exchange-rate-lookup", errorValue.message, { currency: errorValue.currency })];
-  }
-};
-
-export const feePreviewSuccess = (invoiceId: string, totalEur: number): readonly ViewMessage[] => [
-  success(
-    "fee-preview-ok",
-    `Facture ${invoiceId}: total comptable détecté ${totalEur.toFixed(2)} EUR.`,
-  ),
-];
+export const ebayFeesErrorMessages = (errorValue: EbayFeesError): readonly ViewMessage[] =>
+  Match.value(errorValue).pipe(
+    Match.tag('MissingExchangeRateError', (value) => [
+      error(
+        'missing-exchange-rate',
+        `Le taux BCE EUR manque pour ${value.currency} dans la facture ${value.invoiceId}. Vérifiez la devise ou ajoutez un montant EUR dans le CSV.`,
+        { invoiceId: value.invoiceId, currency: value.currency },
+      ),
+    ]),
+    Match.tag('FeeMappingError', (value) => [
+      error(
+        'fee-mapping',
+        `La colonne "${value.column}" est introuvable dans ${value.fileName}. Corrigez le mapping des frais.`,
+        { fileName: value.fileName, column: value.column },
+      ),
+    ]),
+    Match.tag('FeePreviewError', (value) => [error('fee-preview', value.message)]),
+    Match.tag('ExchangeRateLookupError', (value) => [
+      error('exchange-rate-lookup', value.message, { currency: value.currency }),
+    ]),
+    Match.exhaustive,
+  );
