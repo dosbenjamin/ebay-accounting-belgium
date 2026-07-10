@@ -26,11 +26,38 @@ const securityHeaders = {
   'x-frame-options': 'DENY',
 } as const;
 
-const withSecurityHeaders = (response: Response): Response => {
+const longLivedAssetPath = /^\/assets\/.+/;
+
+const cacheControlFor = (request: Request, response: Response): string => {
+  const { pathname } = new URL(request.url);
+  const method = request.method.toUpperCase();
+
+  if (method !== 'GET' && method !== 'HEAD') {
+    return 'no-store';
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return 'no-store';
+  }
+
+  if (longLivedAssetPath.test(pathname)) {
+    return 'public, max-age=31536000, immutable';
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('text/html') || contentType.includes('application/zip')) {
+    return 'no-store';
+  }
+
+  return 'no-store';
+};
+
+const withCloudflareHeaders = (request: Request, response: Response): Response => {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(securityHeaders)) {
     headers.set(name, value);
   }
+  headers.set('cache-control', cacheControlFor(request, response));
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -43,6 +70,6 @@ export default {
     const context = new RouterContextProvider();
     context.set(cloudflareContext, { env, ctx });
 
-    return withSecurityHeaders(await requestHandler(request, context));
+    return withCloudflareHeaders(request, await requestHandler(request, context));
   },
 } satisfies ExportedHandler<Env>;
