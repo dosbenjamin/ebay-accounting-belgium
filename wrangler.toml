@@ -1,4 +1,4 @@
-name = "ebay-compta-belgique"
+name = "ebay-accounting-belgium"
 main = "./workers/app.ts"
 compatibility_date = "2026-07-09"
 compatibility_flags = ["nodejs_compat"]

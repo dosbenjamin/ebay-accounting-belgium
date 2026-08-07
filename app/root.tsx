@@ -3,7 +3,7 @@ import { Provider } from '~/shared/ui/provider';
 import './styles.css';
 
 export const meta = () => [
-  { title: 'eBay Compta Belgique' },
+  { title: 'eBay Accounting Belgium' },
   {
     name: 'description',
     content: 'Preparation comptable trimestrielle eBay pour vendeur belge.',

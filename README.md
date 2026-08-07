@@ -1,22 +1,22 @@
-# eBay Compta Belgique
+# eBay Accounting Belgium
 
-Application web de préparation comptable trimestrielle eBay pour vendeur belge.
+Web application for preparing quarterly eBay accounting records for a Belgian seller.
 
-## Développement
+## Development
 
-Ouvrir le projet dans le devcontainer, puis lancer:
+Open the project in the dev container, then run:
 
 ```sh
 pnpm dev
 ```
 
-Le projet privilégie:
+The project favors:
 
-- React Router en mode framework
+- React Router in framework mode
 - Chakra UI
 - Cloudflare Workers
-- business logic backend avec Effect, Schema, Context/Layer et erreurs typées
-- architecture feature-based
+- backend business logic with Effect, Schema, Context/Layer, and typed errors
+- feature-based architecture
 
-Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour les décisions d'architecture
-et conventions à conserver dans les prochaines itérations.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the architecture decisions
+and conventions to preserve in future iterations.

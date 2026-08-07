@@ -1,77 +1,77 @@
 # Architecture Decisions
 
-Ce document conserve les instructions d'architecture et les conventions du projet.
-Il sert de reference pour les prochains prompts et les prochaines iterations.
+This document records the project's architecture instructions and conventions.
+It serves as a reference for future prompts and iterations.
 
-## Objectif Produit
+## Product Goal
 
-Application web de preparation comptable trimestrielle eBay pour un vendeur belge.
+A web application for preparing quarterly eBay accounting records for a Belgian seller.
 
-Le MVP genere un dossier comptable ZIP a partir de fichiers uploades manuellement:
+The MVP generates a ZIP accounting package from manually uploaded files:
 
-- Un ou plusieurs CSV ventes eBay.
-- Un ou plusieurs CSV remboursements eBay.
-- Pour chaque mois du trimestre:
-  - PDF officiel facture frais eBay.
-  - CSV detail frais eBay correspondant.
+- One or more eBay sales CSV files.
+- One or more eBay refund CSV files.
+- For each month in the quarter:
+  - Official eBay fee invoice PDF.
+  - Corresponding eBay fee details CSV.
 
-Une facture de frais eBay est toujours une paire obligatoire: PDF officiel + CSV detail frais.
-L'interface permet d'ajouter plusieurs factures successivement, avec une dropzone par facture
-qui doit contenir exactement cette paire de fichiers avant calcul/generation.
+An eBay fee invoice is always a mandatory pair: official PDF + fee details CSV.
+The interface allows users to add several invoices in succession, with one drop zone per invoice.
+Each drop zone must contain exactly this pair of files before calculation/generation.
 
-Workflow MVP:
+MVP workflow:
 
-- La page index regroupe tous les uploads du trimestre.
-- Un seul bouton final genere le ZIP comptable.
-- Le flux utilisateur principal est mono-page: `routes/wizard.index.tsx`.
-- La generation passe par l'endpoint backend `routes/api.generate-upload.ts`.
-- Les anciennes routes d'etapes wizard ne font plus partie du MVP et doivent rester supprimees
-  tant qu'un besoin produit explicite ne les reactive pas.
+- The index page groups all uploads for the quarter.
+- A single final button generates the accounting ZIP.
+- The main user flow is a single page: `routes/wizard.index.tsx`.
+- Generation goes through the backend endpoint `routes/api.generate-upload.ts`.
+- The old wizard step routes are no longer part of the MVP and must remain deleted
+  until an explicit product requirement reactivates them.
 
-Le besoin principal est de calculer un total comptable EUR par facture de frais eBay.
-Chaque facture finale doit rester separee et identifiable: on ajoute uniquement une page
-d'annexe en premiere page, puis les pages du PDF eBay officiel sont copiees sans modification.
+The main requirement is to calculate an accounting total in EUR for each eBay fee invoice.
+Each final invoice must remain separate and identifiable: only an appendix page is added
+as the first page, after which the pages from the official eBay PDF are copied unmodified.
 
 ## Stack
 
-- TypeScript strict.
-- React Router en mode framework.
-- Chakra UI pour l'interface.
-- Cloudflare Workers pour le deploiement.
-- Effect pour la business logic.
-- Vitest pour les tests.
-- Oxlint pour le lint strict.
-- Oxfmt pour le formatage, avec single quotes.
-- `papaparse` pour CSV.
-- `pdf-lib` pour PDF.
-- `fflate` pour ZIP.
-- `pnpm` comme package manager.
-- Developpement via VS Code Dev Containers, pas via Docker manuel.
+- Strict TypeScript.
+- React Router in framework mode.
+- Chakra UI for the interface.
+- Cloudflare Workers for deployment.
+- Effect for business logic.
+- Vitest for tests.
+- Oxlint for strict linting.
+- Oxfmt for formatting, with single quotes.
+- `papaparse` for CSV.
+- `pdf-lib` for PDF.
+- `fflate` for ZIP.
+- `pnpm` as the package manager.
+- Development through VS Code Dev Containers, not manual Docker usage.
 
-## Devcontainer
+## Dev Container
 
-Le developpement local se fait en ouvrant le dossier dans VS Code avec Dev Containers.
+Local development is done by opening the folder in VS Code with Dev Containers.
 
-Fichiers:
+Files:
 
 - `.devcontainer/devcontainer.json`
 
-La configuration utilise directement l'image `node:24` dans `devcontainer.json`,
-sans fichier Compose separe.
+The configuration uses the `node:24` image directly in `devcontainer.json`,
+without a separate Compose file.
 
-Commande de dev depuis le terminal du devcontainer:
+Development command from the dev container terminal:
 
 ```sh
 pnpm dev
 ```
 
-Ne pas supposer que `node`, `npm` ou `pnpm` sont disponibles sur l'hote.
+Do not assume that `node`, `npm`, or `pnpm` are available on the host.
 
-## Architecture Feature-Based
+## Feature-Based Architecture
 
-L'architecture est organisee par feature, pas par couche technique globale.
+The architecture is organized by feature, not by global technical layer.
 
-Structure actuelle:
+Current structure:
 
 ```txt
 app/
@@ -96,7 +96,7 @@ app/
     zip/
 ```
 
-Chaque feature peut contenir:
+Each feature may contain:
 
 ```txt
 components/
@@ -113,125 +113,125 @@ calculations.ts
 *.test.ts
 ```
 
-`shared` doit rester transversal et stable. Ne pas y mettre de logique specifique a une feature.
+`shared` must remain cross-cutting and stable. Do not put feature-specific logic there.
 
-Les anciennes features `dossier-setup`, `refunds` et `review` ont ete retirees du MVP.
-Les remboursements utilisent le meme service d'agregation que les ventes via le `kind: 'refunds'`
-et restent orchestres par `features/generation`.
+The old `dossier-setup`, `refunds`, and `review` features have been removed from the MVP.
+Refunds use the same aggregation service as sales through `kind: 'refunds'` and remain
+orchestrated by `features/generation`.
 
-## Backend-First
+## Backend First
 
-La business logic doit rester autant que possible cote Worker/backend.
+Business logic must remain on the Worker/backend side as much as possible.
 
-Le frontend peut gerer:
+The frontend may handle:
 
-- Etat d'affichage du wizard.
-- Selection de fichiers.
-- Ajout/retrait de paires de fichiers frais eBay.
-- Affichage de previews, messages et syntheses retournes par le backend.
+- Wizard display state.
+- File selection.
+- Adding/removing pairs of eBay fee files.
+- Displaying previews, messages, and summaries returned by the backend.
 
-Le frontend ne doit pas porter:
+The frontend must not handle:
 
-- Aggregation comptable.
-- Classification UE / hors UE.
-- Parsing monetaire metier.
-- Conversion EUR.
-- Generation PDF/ZIP.
-- Validation metier profonde.
+- Accounting aggregation.
+- EU / non-EU classification.
+- Business-specific monetary parsing.
+- EUR conversion.
+- PDF/ZIP generation.
+- Deep business validation.
 
-Les mappings CSV actuellement supportes par le MVP sont fixes cote backend:
+The CSV mappings currently supported by the MVP are fixed on the backend:
 
-- ventes/remboursements: colonnes eBay par defaut definies dans `features/generation/form-upload.ts`.
-- frais eBay: `Devise` et `Montant total` via `features/ebay-fees/schemas.ts`.
+- sales/refunds: default eBay columns defined in `features/generation/form-upload.ts`.
+- eBay fees: `Devise` and `Montant total` through `features/ebay-fees/schemas.ts`.
 
 ## React Router: Loader > View > Action
 
-Privilegier le cycle React Router:
+Favor the React Router cycle:
 
-- `loader`: charge l'etat affichable et les donnees necessaires.
-- `view`: affiche via Chakra UI et collecte l'intention utilisateur.
-- `action`: recoit le `FormData`, valide, appelle les services Effect backend, retourne messages ou redirige.
+- `loader`: loads displayable state and required data.
+- `view`: renders with Chakra UI and collects user intent.
+- `action`: receives `FormData`, validates it, calls backend Effect services, and returns messages or redirects.
 
-Les vues doivent rester minces. Les routes sont des adaptateurs entre HTTP/FormData et services Effect.
+Views must remain thin. Routes are adapters between HTTP/FormData and Effect services.
 
-Dans le MVP actuel:
+In the current MVP:
 
-- `routes/wizard.index.tsx` affiche la page mono-formulaire et gere le telechargement du ZIP.
-- `routes/api.generate-upload.ts` recoit le `FormData` et retourne le ZIP.
-- Les deux routes deleguent a `generatePackageFromUploadForm`.
+- `routes/wizard.index.tsx` displays the single-form page and handles ZIP download.
+- `routes/api.generate-upload.ts` receives the `FormData` and returns the ZIP.
+- Both routes delegate to `generatePackageFromUploadForm`.
 
-Les previews interactives futures peuvent utiliser `fetcher`, mais elles doivent toujours appeler le backend.
+Future interactive previews may use `fetcher`, but they must always call the backend.
 
-Tous les inputs aux frontieres React Router doivent etre valides avec Effect Schema:
+All inputs at React Router boundaries must be validated with Effect Schema:
 
-- query params de `loader` / resource route
-- route params quand des routes dynamiques existent
-- payload JSON des actions API
-- champs texte de `FormData`
+- query parameters for a `loader` / resource route
+- route parameters when dynamic routes exist
+- JSON payloads for API actions
+- text fields in `FormData`
 
-Les fichiers `File` restent verifies explicitement comme fichiers, puis leurs metadonnees et champs
-associes passent par des schemas. Ne pas lire directement `request.json()` ou `formData.get(...)`
-pour construire de la business logic sans passer par un schema.
+`File` values are still explicitly checked as files; their metadata and associated fields
+then pass through schemas. Do not read `request.json()` or `formData.get(...)` directly
+to construct business logic without going through a schema.
 
-## Effect: Business Logic, Services et DI
+## Effect: Business Logic, Services, and DI
 
-Toute business logic significative doit utiliser Effect au maximum de ses capacites:
+All significant business logic must use Effect to the fullest extent possible:
 
-- `Effect` pour composer les pipelines.
-- `Schema` pour valider et typer les inputs/outputs.
-- `Context.Tag` et `Layer` pour les services et la DI.
-- `Data.TaggedError` pour les erreurs typees.
-- `Effect.fn` pour les fonctions metier/services pertinentes afin d'obtenir des spans nommes.
-- `Effect.runPromise` ou `Effect.runPromiseExit` uniquement aux frontieres HTTP/tests.
-- Helpers de validation des frontieres dans `app/shared/effect/validation.ts`.
+- `Effect` to compose pipelines.
+- `Schema` to validate and type inputs/outputs.
+- `Context.Tag` and `Layer` for services and DI.
+- `Data.TaggedError` for typed errors.
+- `Effect.fn` for relevant business/service functions to obtain named spans.
+- `Effect.runPromise` or `Effect.runPromiseExit` only at HTTP/test boundaries.
+- Boundary validation helpers in `app/shared/effect/validation.ts`.
 
-Pas de `throw` volontaire dans le core metier.
-Pas de `Promise` nu dans le core metier, sauf dans les adapters live.
-Eviter `try/catch` dans les actions/loaders React Router pour les erreurs attendues.
-Preferer le canal d'erreur Effect:
+No intentional `throw` in the business core.
+No bare `Promise` in the business core, except in live adapters.
+Avoid `try/catch` in React Router actions/loaders for expected errors.
+Prefer Effect's error channel:
 
-- erreurs typees avec `_tag`
-- composition avec `Effect.flatMap`
-- normalisation finale avec `Effect.match` ou `Effect.catchAll`
-- `Effect.runPromise` uniquement sur un programme dont les erreurs attendues sont deja transformees en reponse HTTP ou action data
+- typed errors with `_tag`
+- composition with `Effect.flatMap`
+- final normalization with `Effect.match` or `Effect.catchAll`
+- `Effect.runPromise` only on a program whose expected errors have already been transformed into an HTTP response or action data
 
-Services transversaux:
+Cross-cutting services:
 
 - `CsvParser`
-- primitives money
-- primitives countries
+- money primitives
+- country primitives
 - `ExchangeRateProvider`
 - `PdfService`
 - `ZipService`
 - `ClockService`
-- primitives filenames et upload validation
+- filename primitives and upload validation
 
-Services feature:
+Feature services:
 
-- `features/sales/service.ts`: aggregation ventes/remboursements par pays.
-- `features/ebay-fees/service.ts`: aggregation frais par devise et conversion EUR.
-- `features/generation/service.ts`: orchestration PDF/ZIP.
-- `features/generation/form-upload.ts`: adaptation `FormData` upload vers input metier.
+- `features/sales/service.ts`: aggregation of sales/refunds by country.
+- `features/ebay-fees/service.ts`: aggregation of fees by currency and EUR conversion.
+- `features/generation/service.ts`: PDF/ZIP orchestration.
+- `features/generation/form-upload.ts`: adaptation of uploaded `FormData` to business input.
 
-Les tests doivent pouvoir injecter des fake layers pour tester la business logic sans fichiers reels,
-PDF reels, ZIP reels ou horloge systeme.
+Tests must be able to inject fake layers to test business logic without real files,
+real PDFs, real ZIPs, or the system clock.
 
-Le `LiveWorkerLayer` assemble actuellement `CsvParserLive`, `PdfServiceLive`, `ZipServiceLive`,
-`ClockServiceLive` et `ExchangeRateProviderLive`.
+The `LiveWorkerLayer` currently assembles `CsvParserLive`, `PdfServiceLive`, `ZipServiceLive`,
+`ClockServiceLive`, and `ExchangeRateProviderLive`.
 
-## Gestion Success/Error UX
+## Success/Error UX Management
 
-Les erreurs et succes doivent etre geres gracieusement et etre comprehensibles pour l'utilisateur.
+Errors and successes must be handled gracefully and be understandable to the user.
 
-Messages utilisateur:
+User-facing messages:
 
-- En francais.
-- Concrets.
-- Actionnables.
-- Attaches si possible a une etape, un fichier, une colonne, une facture ou une devise.
-- Sans stack trace dans l'UI.
+- In French.
+- Specific.
+- Actionable.
+- Attached, where possible, to a step, file, column, invoice, or currency.
+- Without a stack trace in the UI.
 
-Format conceptuel:
+Conceptual format:
 
 ```ts
 type ViewMessage = {
@@ -248,94 +248,94 @@ type ViewMessage = {
 };
 ```
 
-Les erreurs techniques restent en diagnostics/logs, pas dans l'interface principale.
+Technical errors remain in diagnostics/logs, not in the main interface.
 
-Les warnings non bloquants peuvent etre acceptes explicitement avant generation.
-Les erreurs bloquantes empechent la generation.
+Non-blocking warnings may be explicitly accepted before generation.
+Blocking errors prevent generation.
 
-## Regles Metier
+## Business Rules
 
-- Un dossier par annee et trimestre.
-- Devise comptable EUR.
-- Regrouper ventes et remboursements par pays.
-- Classifier les pays en UE / hors UE.
-- La Belgique est UE.
-- Utiliser une liste codee des pays UE actuels.
-- Tous les montants finaux sont en EUR.
-- Arrondir a 2 decimales.
-- Garder une trace du taux utilise.
-- Les remboursements sont agreges par le meme pipeline que les ventes et apparaissent dans
-  le PDF trimestriel combine avec les ventes.
+- One case per year and quarter.
+- Accounting currency: EUR.
+- Group sales and refunds by country.
+- Classify countries as EU / non-EU.
+- Belgium is in the EU.
+- Use a hard-coded list of current EU countries.
+- All final amounts are in EUR.
+- Round to 2 decimal places.
+- Keep a record of the rate used.
+- Refunds are aggregated by the same pipeline as sales and appear in the combined
+  quarterly PDF alongside sales.
 
-Frais eBay:
+eBay fees:
 
-- Calculer par devise:
-  - total devise
-  - taux utilise
-  - total EUR
-- Total facture EUR = somme des totaux EUR par devise.
-- Priorite des taux/conversions:
-  1. Si le CSV contient deja un montant converti en EUR, l'utiliser.
-  2. Sinon, permettre un taux manuel.
-  3. Sinon, utiliser `ExchangeRateProvider` live base sur les taux de reference BCE.
+- Calculate by currency:
+  - total in original currency
+  - rate used
+  - total in EUR
+- Invoice total in EUR = sum of totals in EUR by currency.
+- Rate/conversion priority:
+  1. If the CSV already contains an amount converted to EUR, use it.
+  2. Otherwise, allow a manual rate.
+  3. Otherwise, use the live `ExchangeRateProvider` based on ECB reference rates.
 
-CSV detail frais eBay:
+eBay fee details CSV:
 
-- Structure attendue stable du rapport `Details de la facture fiscale`.
-- Colonnes fixes utilisees par defaut:
+- Expected stable structure of the `Details de la facture fiscale` report.
+- Fixed columns used by default:
   - `Devise`
   - `Montant total`
-- Le mois et l'annee de facture sont lus depuis la ligne `Periode`.
-- Le frontend ne demande pas de mapping de colonnes ni de periode pour ce CSV.
+- The invoice month and year are read from the `Periode` row.
+- The frontend does not request column or period mapping for this CSV.
 
-PDF frais:
+Fee PDFs:
 
-- Ne jamais fusionner les factures officielles en un seul PDF.
-- Pour chaque facture:
-  - Page 1: annexe conversion comptable EUR.
-  - Pages suivantes: PDF eBay officiel original copie sans modification.
+- Never merge official invoices into a single PDF.
+- For each invoice:
+  - Page 1: EUR accounting conversion appendix.
+  - Following pages: original official eBay PDF copied without modification.
 
-Annexe frais:
+Fee appendix:
 
-- Titre: `Annexe - Conversion comptable en EUR`.
-- Mois.
-- Annee.
-- Nom du fichier PDF original.
-- Tableau devise, montant devise, taux, montant EUR.
-- Total comptable EUR visible.
-- Mention: `Les pages suivantes correspondent a la facture eBay officielle non modifiee.`
+- Title: `Annexe - Conversion comptable en EUR`.
+- Month.
+- Year.
+- Original PDF filename.
+- Table with currency, amount in original currency, rate, and amount in EUR.
+- Clearly visible accounting total in EUR.
+- Notice: `Les pages suivantes correspondent a la facture eBay officielle non modifiee.`
 
-La page d'annexe doit rester la premiere page du PDF genere, et le PDF eBay officiel doit rester
-copie sans modification apres cette annexe.
+The appendix page must remain the first page of the generated PDF, and the official eBay PDF
+must remain copied without modification after this appendix.
 
-## Fichiers Generes
+## Generated Files
 
-ZIP final:
+Final ZIP:
 
 - `dossier_comptable_ebay_<annee>_<trimestre>.zip`
-- `ventes_<annee>_<trimestre>.pdf`: PDF combine ventes + remboursements avec detail des deux sections.
-- Pour chaque facture eBay:
+- `ventes_<annee>_<trimestre>.pdf`: combined sales + refunds PDF with details for both sections.
+- For each eBay invoice:
   - `<mois>_<invoiceId>_frais_ebay_avec_annexe_eur.pdf`
 
-Pas de fichier de synthese frais separe ni de CSV de controle pour le MVP actuel.
+No separate fee summary file or control CSV for the current MVP.
 
-## Contraintes Cloudflare
+## Cloudflare Constraints
 
-- Ne pas stocker durablement les fichiers par defaut.
-- Traitement en memoire pendant la requete pour le MVP.
-- `wrangler.toml` active `observability` et `observability.traces`.
-- `workers/app.ts` ajoute les headers de securite HTTP globaux:
-  CSP, referrer policy, nosniff et frame deny.
-- Prevoir migration future vers R2/Durable Objects/Queues/service separe si:
-  - fichiers trop lourds
-  - generation PDF trop couteuse
-  - limites CPU/memoire Worker atteintes
+- Do not persist files by default.
+- In-memory processing during the request for the MVP.
+- `wrangler.toml` enables `observability` and `observability.traces`.
+- `workers/app.ts` adds global HTTP security headers:
+  CSP, referrer policy, nosniff, and frame deny.
+- Plan a future migration to R2/Durable Objects/Queues/a separate service if:
+  - files are too large
+  - PDF generation is too expensive
+  - Worker CPU/memory limits are reached
 
-Structurer les services pour rendre ce deplacement possible sans reecrire la business logic.
+Structure services so this move is possible without rewriting the business logic.
 
-## Qualite Code
+## Code Quality
 
-TypeScript doit rester tres strict:
+TypeScript must remain very strict:
 
 - `strict`
 - `exactOptionalPropertyTypes`
@@ -348,63 +348,63 @@ TypeScript doit rester tres strict:
 - `noUnusedParameters`
 - `forceConsistentCasingInFileNames`
 
-Oxlint doit rester strict:
+Oxlint must remain strict:
 
-- categories `correctness`, `suspicious` et `perf` en erreur.
-- plugins TypeScript, React, JSX a11y, Vitest, imports, Promise, Unicorn et OXC.
-- exceptions documentees uniquement quand elles correspondent au stack actuel:
+- `correctness`, `suspicious`, and `perf` categories treated as errors.
+- TypeScript, React, JSX a11y, Vitest, imports, Promise, Unicorn, and OXC plugins.
+- documented exceptions only when they match the current stack:
   - `react/react-in-jsx-scope`: React 19 + JSX transform.
-  - `import/no-unassigned-import`: imports CSS React Router/Vite.
-  - `no-await-in-loop`: generation PDF sequentielle quand l'ordre des pages compte.
+  - `import/no-unassigned-import`: React Router/Vite CSS imports.
+  - `no-await-in-loop`: sequential PDF generation when page order matters.
 
-Oxfmt est configure avec single quotes.
+Oxfmt is configured with single quotes.
 
 ## Tests
 
-Tests unitaires attendus:
+Expected unit tests:
 
-- Classification pays UE / hors UE.
-- Aggregation ventes par pays.
-- Aggregation remboursements par pays.
-- Aggregation frais par devise.
-- Conversion EUR.
-- Priorite montant EUR CSV avant taux manuel.
-- Generation des noms de fichiers.
-- Messages erreurs/succes utilisateur.
-- Manifest ZIP.
-- PDF frais: annexe avant pages originales.
+- EU / non-EU country classification.
+- Sales aggregation by country.
+- Refund aggregation by country.
+- Fee aggregation by currency.
+- EUR conversion.
+- Priority of the CSV EUR amount over a manual rate.
+- Generated filenames.
+- User-facing error/success messages.
+- ZIP manifest.
+- Fee PDF: appendix before original pages.
 
-Tests frontend:
+Frontend tests:
 
-- Legers.
-- Portent sur affichage de `loaderData/actionData`, messages et etats.
-- Ne testent pas la business logic metier.
+- Lightweight.
+- Cover rendering of `loaderData/actionData`, messages, and states.
+- Do not test business logic.
 
-## Priorites MVP
+## MVP Priorities
 
-1. Wizard upload.
-2. Parsing CSV.
-3. Mappings colonnes fixes MVP.
-4. Calculs ventes/remboursements par pays et UE/hors UE.
-5. Calcul frais par devise et EUR depuis CSV.
-6. Generation PDF combine ventes/remboursements.
-7. Generation des PDF frais avec page annexe + PDF original.
-8. ZIP final.
+1. Upload wizard.
+2. CSV parsing.
+3. Fixed MVP column mappings.
+4. Sales/refund calculations by country and EU/non-EU.
+5. Fee calculations by currency and EUR from CSV.
+6. Combined sales/refunds PDF generation.
+7. Fee PDF generation with appendix page + original PDF.
+8. Final ZIP.
 
-## Etat Actuel Important
+## Important Current State
 
-Le MVP est actuellement centre sur une seule page:
+The MVP is currently centered on a single page:
 
-- `routes/wizard.index.tsx`: collecte tous les fichiers du trimestre.
-- `routes/api.generate-upload.ts`: endpoint backend de generation ZIP.
-- `features/generation/form-upload.ts`: validation upload, lecture fichiers et construction de l'input metier.
-- `features/generation/service.ts`: orchestration sales/refunds/fees, PDF et ZIP.
+- `routes/wizard.index.tsx`: collects all files for the quarter.
+- `routes/api.generate-upload.ts`: backend ZIP generation endpoint.
+- `features/generation/form-upload.ts`: upload validation, file reading, and business input construction.
+- `features/generation/service.ts`: orchestration of sales/refunds/fees, PDFs, and ZIP.
 
-Le backend de calcul/generation est pose avec Effect, `Effect.fn` et services injectables.
-Les anciennes routes d'etapes et features obsoletes ont ete supprimees.
+The calculation/generation backend is built with Effect, `Effect.fn`, and injectable services.
+The old step routes and obsolete features have been removed.
 
-Point important restant si le produit redevient multi-etapes:
+Important remaining point if the product becomes multi-step again:
 
-- Introduire un `SessionRepository` injectable pour conserver l'etat/fichiers entre etapes.
-- Prevoir une interface compatible avec une migration future vers R2/Durable Object.
-- Ne pas reintroduire de routes wizard multi-etapes sans ce stockage explicite.
+- Introduce an injectable `SessionRepository` to preserve state/files between steps.
+- Provide an interface compatible with a future migration to R2/Durable Objects.
+- Do not reintroduce multi-step wizard routes without this explicit storage.

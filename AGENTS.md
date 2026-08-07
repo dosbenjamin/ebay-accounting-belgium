@@ -1,29 +1,29 @@
 # Agent Instructions
 
-Lire d'abord `docs/ARCHITECTURE.md`. Ce fichier contient les decisions produit,
-techniques et metier a conserver entre les sessions.
+Read `docs/ARCHITECTURE.md` first. It contains the product, technical, and business
+decisions that must be preserved across sessions.
 
-## Regles Prioritaires
+## Priority Rules
 
-- Developpement via VS Code Dev Containers. Ne pas supposer que Node/pnpm existent sur l'hote.
+- Develop using VS Code Dev Containers. Do not assume that Node/pnpm are available on the host.
 - Stack: TypeScript, React Router framework mode, Chakra UI, Cloudflare Workers, Effect.
-- Architecture feature-based sous `app/features/*`.
-- Business logic backend-first: le frontend affiche et collecte, le Worker calcule.
-- Utiliser le cycle React Router `loader > view > action` autant que possible.
-- Utiliser Effect pour la business logic significative:
-  - `Effect` pour les pipelines.
-  - `Schema` pour validation et types.
-  - `Context.Tag` / `Layer` pour services et DI.
-  - `Data.TaggedError` pour erreurs typees.
-- Les routes React Router sont des adaptateurs minces entre HTTP/FormData et services Effect.
-- Valider query params, route params, payload JSON et champs FormData avec Effect Schema.
-- Eviter `try/catch` pour les erreurs attendues dans les actions/loaders; utiliser `Effect.match`,
-  `Effect.catchAll` et les tags d'erreur.
-- Les composants Chakra ne doivent pas contenir de calcul metier.
-- Les erreurs utilisateur doivent etre en francais, comprehensibles, actionnables, sans stack trace.
-- Ne pas stocker durablement les fichiers pour le MVP.
+- Use a feature-based architecture under `app/features/*`.
+- Backend-first business logic: the frontend displays and collects data; the Worker performs calculations.
+- Use the React Router `loader > view > action` cycle whenever possible.
+- Use Effect for significant business logic:
+  - `Effect` for pipelines.
+  - `Schema` for validation and types.
+  - `Context.Tag` / `Layer` for services and DI.
+  - `Data.TaggedError` for typed errors.
+- React Router routes are thin adapters between HTTP/FormData and Effect services.
+- Validate query parameters, route parameters, JSON payloads, and FormData fields with Effect Schema.
+- Avoid `try/catch` for expected errors in actions/loaders; use `Effect.match`,
+  `Effect.catchAll`, and error tags.
+- Chakra components must not contain business calculations.
+- User-facing errors must be in French, understandable, actionable, and contain no stack trace.
+- Do not persist files for the MVP.
 
-## Commandes Dans Le Devcontainer
+## Commands in the Dev Container
 
 ```sh
 pnpm dev
@@ -32,11 +32,11 @@ pnpm typecheck
 pnpm build
 ```
 
-## Points D'Attention
+## Important Considerations
 
-- Garder `shared` petit et transversal. Ne pas y deplacer de logique propre a une feature.
-- Tester les services via DI avec fake layers quand une dependance externe intervient.
-- Toute evolution de workflow doit preserver la generation de factures frais separees:
-  une annexe EUR en premiere page, puis le PDF eBay officiel non modifie.
-- Prochaine grande piece probable: `SessionRepository` injectable pour conserver l'etat
-  du dossier entre etapes, avec migration future possible vers R2/Durable Object.
+- Keep `shared` small and cross-cutting. Do not move feature-specific logic into it.
+- Test services through DI with fake layers when an external dependency is involved.
+- Any workflow change must preserve the generation of separate fee invoices:
+  a EUR appendix on the first page, followed by the unmodified official eBay PDF.
+- The next major component will likely be an injectable `SessionRepository` to preserve
+  the case state between steps, with a possible future migration to R2/Durable Objects.
