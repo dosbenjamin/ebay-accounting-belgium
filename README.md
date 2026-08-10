@@ -18,7 +18,6 @@ pnpm dev
 ```
 
 Alternatively, start the declared development process directly with `devenv up`.
-If direnv is installed, run `direnv allow` once to activate the environment automatically.
 
 The project favors:
 

@@ -57,7 +57,6 @@ Files:
 - `devenv.nix`: Node.js, pnpm, dependency installation, and development process.
 - `devenv.yaml`: pinned nixpkgs input declaration.
 - `devenv.lock`: generated lock file for reproducible Nix inputs.
-- `.envrc`: optional automatic shell activation through direnv.
 
 The environment provides Node.js 24 and pnpm. Dependencies are installed from
 `pnpm-lock.yaml` when devenv initializes the environment.
