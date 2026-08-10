@@ -5,7 +5,8 @@ decisions that must be preserved across sessions.
 
 ## Priority Rules
 
-- Develop using VS Code Dev Containers. Do not assume that Node/pnpm are available on the host.
+- Develop inside the Nix environment provided by devenv. Do not assume that Node/pnpm are
+  available outside `devenv shell`.
 - Stack: TypeScript, React Router framework mode, Chakra UI, Cloudflare Workers, Effect.
 - Use a feature-based architecture under `app/features/*`.
 - Backend-first business logic: the frontend displays and collects data; the Worker performs calculations.
@@ -23,9 +24,10 @@ decisions that must be preserved across sessions.
 - User-facing errors must be in French, understandable, actionable, and contain no stack trace.
 - Do not persist files for the MVP.
 
-## Commands in the Dev Container
+## Commands in the devenv Shell
 
 ```sh
+devenv shell
 pnpm dev
 pnpm test
 pnpm typecheck

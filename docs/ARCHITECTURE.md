@@ -46,26 +46,31 @@ as the first page, after which the pages from the official eBay PDF are copied u
 - `pdf-lib` for PDF.
 - `fflate` for ZIP.
 - `pnpm` as the package manager.
-- Development through VS Code Dev Containers, not manual Docker usage.
+- Reproducible local development through Nix and devenv.
 
-## Dev Container
+## Development Environment
 
-Local development is done by opening the folder in VS Code with Dev Containers.
+Local development is done inside the Nix environment declared with devenv.
 
 Files:
 
-- `.devcontainer/devcontainer.json`
+- `devenv.nix`: Node.js, pnpm, dependency installation, and development process.
+- `devenv.yaml`: pinned nixpkgs input declaration.
+- `devenv.lock`: generated lock file for reproducible Nix inputs.
+- `.envrc`: optional automatic shell activation through direnv.
 
-The configuration uses the `node:24` image directly in `devcontainer.json`,
-without a separate Compose file.
+The environment provides Node.js 24 and pnpm. Dependencies are installed from
+`pnpm-lock.yaml` when devenv initializes the environment.
 
-Development command from the dev container terminal:
+Enter the environment and start development with:
 
 ```sh
+devenv shell
 pnpm dev
 ```
 
-Do not assume that `node`, `npm`, or `pnpm` are available on the host.
+The same development process can be started with `devenv up`. Do not assume that
+`node`, `npm`, or `pnpm` are available outside the devenv shell.
 
 ## Feature-Based Architecture
 

@@ -4,11 +4,21 @@ Web application for preparing quarterly eBay accounting records for a Belgian se
 
 ## Development
 
-Open the project in the dev container, then run:
+Install [Nix](https://nixos.org/download/) and
+[devenv](https://devenv.sh/getting-started/), then enter the development shell:
+
+```sh
+devenv shell
+```
+
+Dependencies are installed automatically from `pnpm-lock.yaml`. Start the application with:
 
 ```sh
 pnpm dev
 ```
+
+Alternatively, start the declared development process directly with `devenv up`.
+If direnv is installed, run `direnv allow` once to activate the environment automatically.
 
 The project favors:
 
