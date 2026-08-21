@@ -30,7 +30,12 @@ export default async function handleRequest(
         signal: controller.signal,
         onError(error) {
           if (shellRendered) {
-            console.error(error);
+            console.error(
+              JSON.stringify({
+                message: 'Le rendu React côté serveur a échoué.',
+                error: error instanceof Error ? error.message : String(error),
+              }),
+            );
           }
 
           responseStatusCode = 500;

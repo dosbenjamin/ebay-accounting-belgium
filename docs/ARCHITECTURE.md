@@ -327,7 +327,8 @@ No separate fee summary file or control CSV for the current MVP.
 
 - Do not persist files by default.
 - In-memory processing during the request for the MVP.
-- `wrangler.toml` enables `observability` and `observability.traces`.
+- `wrangler.jsonc` is the deployment source of truth and enables sampled logs and traces.
+- Fingerprinted `/assets/*` files bypass the SSR Worker and use immutable browser caching.
 - `workers/app.ts` adds global HTTP security headers:
   CSP, referrer policy, nosniff, and frame deny.
 - Plan a future migration to R2/Durable Objects/Queues/a separate service if:

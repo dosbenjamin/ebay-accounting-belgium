@@ -2,6 +2,7 @@
 build/
 node_modules/
 .react-router/
+.wrangler/
 .devenv/
 devenv.local.nix
 devenv.local.yaml

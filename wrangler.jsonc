@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ebay-accounting-belgium",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "assets": {
+    "directory": "./build/client",
+    // Fingerprinted files are served without starting the SSR Worker. Requests that
+    // do not match an asset continue to React Router's Worker entry point.
+    "run_worker_first": false,
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+    },
+    "traces": {
+      "enabled": false,
+    },
+  },
+  // PDF and ZIP generation is intentionally synchronous for the in-memory MVP.
+  "limits": {
+    "cpu_ms": 30000,
+  },
+}

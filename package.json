@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "react-router dev --host 0.0.0.0",
     "build": "react-router build",
-    "deploy": "wrangler deploy",
+    "deploy": "pnpm deploy:check && wrangler deploy",
+    "deploy:check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && wrangler deploy --dry-run",
+    "cf:typegen": "wrangler types",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
@@ -30,7 +32,6 @@
     "react-router": "^7.9.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260702.1",
     "@react-router/dev": "^7.9.0",
     "@types/node": "^24.0.0",
     "@types/papaparse": "^5.3.16",
@@ -43,7 +44,7 @@
     "vite": "^7.0.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.0",
-    "wrangler": "^4.59.0"
+    "wrangler": "^4.124.0"
   },
   "packageManager": "pnpm@11.18.0"
 }
