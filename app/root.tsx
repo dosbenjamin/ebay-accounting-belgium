@@ -10,7 +10,11 @@ export const meta = () => [
   },
 ];
 
-export const links = () => [{ rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }];
+export const links = () => [
+  { rel: 'icon', href: '/favicon.ico', type: 'image/x-icon', sizes: 'any' },
+  { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+  { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+];
 
 export function Layout({ children }: { readonly children: React.ReactNode }) {
   return (
