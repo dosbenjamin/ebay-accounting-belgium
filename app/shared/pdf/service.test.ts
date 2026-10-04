@@ -64,4 +64,20 @@ describe('pdf service', () => {
     const document = await PDFDocument.load(bytes);
     expect(document.getPageCount()).toBe(3);
   });
+
+  it('normalizes non-breaking spaces unsupported by the standard PDF font', async () => {
+    const bytes = await Effect.runPromise(
+      Effect.gen(function* () {
+        const pdf = yield* PdfService;
+        return yield* pdf.summaryPdf({
+          title: 'Récapitulatif',
+          lines: ['Total: 1\u202f234,56 EUR'],
+          table: [['Montant', '1\u00a0234,56 EUR']],
+        });
+      }).pipe(Effect.provide(PdfServiceLive)),
+    );
+
+    const document = await PDFDocument.load(bytes);
+    expect(document.getPageCount()).toBe(1);
+  });
 });

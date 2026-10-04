@@ -62,6 +62,8 @@ const pageSize: [number, number] = [595.28, 841.89];
 
 const addPage = (pdf: PDFDocument) => pdf.addPage(pageSize);
 
+const normalizePdfText = (value: string): string => value.replace(/[\u00A0\u202F]/g, ' ');
+
 const drawLines = async (
   pdf: PDFDocument,
   title: string,
@@ -76,10 +78,16 @@ const drawLines = async (
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let y = 790;
-  page.drawText(title, { x: 48, y, size: 18, font: bold, color: rgb(0.1, 0.16, 0.14) });
+  page.drawText(normalizePdfText(title), {
+    x: 48,
+    y,
+    size: 18,
+    font: bold,
+    color: rgb(0.1, 0.16, 0.14),
+  });
   y -= 34;
   for (const line of lines) {
-    page.drawText(line.slice(0, 110), { x: 48, y, size: 10, font });
+    page.drawText(normalizePdfText(line).slice(0, 110), { x: 48, y, size: 10, font });
     y -= 16;
   }
   if (table) {
@@ -93,7 +101,7 @@ const drawLines = async (
       const columnWidth = Math.floor(500 / Math.max(row.length, 1));
       const maxChars = Math.max(10, Math.floor(columnWidth / 5));
       for (const cell of row) {
-        page.drawText(cell.slice(0, maxChars), { x, y, size: 9, font });
+        page.drawText(normalizePdfText(cell).slice(0, maxChars), { x, y, size: 9, font });
         x += columnWidth;
       }
       y -= 15;
