@@ -68,8 +68,8 @@ describe('generation manifest naming', () => {
     expect(table).toContainEqual(['Belgique', 'UE', '70.00 EUR', '10.00 EUR', '60.00 EUR']);
     expect(table).toContainEqual(['France', 'UE', '0.00 EUR', '0.00 EUR', '0.00 EUR']);
     expect(table[1]).toEqual([
-      'Hors UE (TVA non applicable)',
       'Hors UE',
+      '(TVA non applicable)',
       '30.00 EUR',
       '15.00 EUR',
       '15.00 EUR',

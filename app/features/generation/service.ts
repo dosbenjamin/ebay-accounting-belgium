@@ -158,8 +158,8 @@ export const salesRefundsSummaryTable = (input: {
   return [
     ['Pays', 'Zone', 'Ventes EUR', 'Remboursements EUR', 'Total net EUR'],
     [
-      'Hors UE (TVA non applicable)',
       'Hors UE',
+      '(TVA non applicable)',
       formatEur(nonEuSales.totalEur),
       formatEur(nonEuRefunds.totalEur),
       formatEur(nonEuSales.totalEur - nonEuRefunds.totalEur),
