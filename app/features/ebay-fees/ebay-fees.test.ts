@@ -145,5 +145,8 @@ describe('ebay fees', () => {
       'live_ecb',
     );
     expect(result.totalsByCurrency.find((row) => row.currency === 'EUR')?.rateToEur).toBe(1);
+    expect(result.netTotalEur).toBe(94.79);
+    expect(result.vatTotalEur).toBe(19.91);
+    expect(result.totalEur).toBe(114.7);
   });
 });

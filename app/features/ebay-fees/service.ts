@@ -218,6 +218,8 @@ export const previewFeeInvoice = Effect.fn('ebayFees.previewFeeInvoice')(functio
     input.manualRates.map((rate) => [rate.currency.toUpperCase(), rate.rateToEur]),
   );
   const currencyOriginalTotals = new Map<string, number>();
+  const currencyNetTotals = new Map<string, number>();
+  const currencyVatTotals = new Map<string, number>();
   const currencyEurTotals = new Map<string, number>();
 
   for (const row of parsed.rows) {
@@ -240,6 +242,32 @@ export const previewFeeInvoice = Effect.fn('ebayFees.previewFeeInvoice')(functio
       currency,
       round2((currencyOriginalTotals.get(currency) ?? 0) + amount),
     );
+
+    if (input.mapping.netAmount) {
+      const netRaw = yield* requireColumn(row, input.csvFileName, input.mapping.netAmount);
+      const netAmount = yield* parseMoneyAmount(netRaw, input.mapping.netAmount).pipe(
+        Effect.mapError(
+          () =>
+            new FeePreviewError({
+              message: `Montant net invalide dans ${input.csvFileName}.`,
+            }),
+        ),
+      );
+      currencyNetTotals.set(currency, round2((currencyNetTotals.get(currency) ?? 0) + netAmount));
+    }
+
+    if (input.mapping.vatAmount) {
+      const vatRaw = yield* requireColumn(row, input.csvFileName, input.mapping.vatAmount);
+      const vatAmount = yield* parseMoneyAmount(vatRaw, input.mapping.vatAmount).pipe(
+        Effect.mapError(
+          () =>
+            new FeePreviewError({
+              message: `Montant de TVA invalide dans ${input.csvFileName}.`,
+            }),
+        ),
+      );
+      currencyVatTotals.set(currency, round2((currencyVatTotals.get(currency) ?? 0) + vatAmount));
+    }
 
     if (input.mapping.eurAmount) {
       const eurRaw = yield* requireColumn(row, input.csvFileName, input.mapping.eurAmount);
@@ -272,12 +300,27 @@ export const previewFeeInvoice = Effect.fn('ebayFees.previewFeeInvoice')(functio
   }
 
   const totalEur = round2(totalsByCurrency.reduce((sum, item) => sum + item.eurTotal, 0));
+  const netTotalEur = round2(
+    totalsByCurrency.reduce(
+      (sum, item) =>
+        sum + toEur(currencyNetTotals.get(item.currency) ?? item.originalTotal, item.rateToEur),
+      0,
+    ),
+  );
+  const vatTotalEur = round2(
+    totalsByCurrency.reduce(
+      (sum, item) => sum + toEur(currencyVatTotals.get(item.currency) ?? 0, item.rateToEur),
+      0,
+    ),
+  );
 
   return {
     invoiceId: input.invoiceId,
     month: input.month,
     year: input.year,
     totalsByCurrency,
+    netTotalEur,
+    vatTotalEur,
     totalEur,
   };
 });

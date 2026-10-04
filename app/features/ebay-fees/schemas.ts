@@ -3,6 +3,8 @@ import { Schema } from 'effect';
 export const FeeCsvMapping = Schema.Struct({
   currency: Schema.String,
   amount: Schema.String,
+  netAmount: Schema.optional(Schema.String),
+  vatAmount: Schema.optional(Schema.String),
   eurAmount: Schema.optional(Schema.String),
 });
 export type FeeCsvMapping = Schema.Schema.Type<typeof FeeCsvMapping>;
@@ -10,6 +12,8 @@ export type FeeCsvMapping = Schema.Schema.Type<typeof FeeCsvMapping>;
 export const ebayInvoiceFeeCsvMapping: FeeCsvMapping = {
   currency: 'Devise',
   amount: 'Montant total',
+  netAmount: 'Montant net',
+  vatAmount: 'Montant de TVA',
 };
 
 export const ManualRate = Schema.Struct({
@@ -45,6 +49,8 @@ export const FeeInvoicePreview = Schema.Struct({
   month: Schema.String,
   year: Schema.Number,
   totalsByCurrency: Schema.Array(FeeCurrencyTotal),
+  netTotalEur: Schema.Number,
+  vatTotalEur: Schema.Number,
   totalEur: Schema.Number,
 });
 export type FeeInvoicePreview = Schema.Schema.Type<typeof FeeInvoicePreview>;

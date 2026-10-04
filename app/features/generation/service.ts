@@ -23,6 +23,9 @@ const optionalLine = (line: string | undefined): readonly string[] => {
   return [line];
 };
 
+const monthWithFrenchPreposition = (month: string): string =>
+  /^[aeiouyàâäéèêëîïôöùûü]/i.test(month) ? `d'${month}` : `de ${month}`;
+
 export const salesSummaryTable = (sales: SalesSummaryInput) => {
   const byCountry = new Map(sales.data.byCountry.map((row) => [row.country, row]));
   const euRows = euCountryCodes.map((country) => {
@@ -38,8 +41,8 @@ export const salesSummaryTable = (sales: SalesSummaryInput) => {
 
   return [
     ['Zone / pays', 'Lignes', 'Total EUR'],
+    ['Hors UE (TVA non applicable)', String(nonEuCount), formatEur(sales.data.nonEuTotal)],
     ...euRows,
-    ['Hors UE', String(nonEuCount), formatEur(sales.data.nonEuTotal)],
     ['Pays non reconnus', String(unknownCount), formatEur(sales.data.unknownTotal)],
     ['Total ventes', String(sales.data.totalRows), formatEur(sales.data.totalEur)],
   ];
@@ -154,14 +157,14 @@ export const salesRefundsSummaryTable = (input: {
 
   return [
     ['Pays', 'Zone', 'Ventes EUR', 'Remboursements EUR', 'Total net EUR'],
-    ...euRows,
     [
-      'Hors UE',
+      'Hors UE (TVA non applicable)',
       'Hors UE',
       formatEur(nonEuSales.totalEur),
       formatEur(nonEuRefunds.totalEur),
       formatEur(nonEuSales.totalEur - nonEuRefunds.totalEur),
     ],
+    ...euRows,
     [
       'Pays non reconnus',
       'Inconnu',
@@ -278,8 +281,12 @@ export const generateQuarterPackage = Effect.fn('generation.generateQuarterPacka
       data: yield* pdf.withAnnexPage({
         originalPdf: original.bytes,
         originalFileName: original.fileName,
-        title: 'Annexe - Conversion comptable en EUR',
-        lines: [`Mois: ${fee.month}`, `Année: ${fee.year}`],
+        title: `Total de la facture eBay pour le mois ${monthWithFrenchPreposition(fee.month)} ${fee.year}`,
+        lines: [
+          'Total multi-devises (converti en EUR)',
+          `Net total: ${formatEur(fee.netTotalEur)}`,
+          `TVA totale: ${formatEur(fee.vatTotalEur)}`,
+        ],
         table: [
           ['Devise', 'Montant devise', 'Taux', 'Montant EUR'],
           ...fee.totalsByCurrency.map((row) => [

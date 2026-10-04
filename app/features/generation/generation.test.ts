@@ -31,7 +31,7 @@ describe('generation manifest naming', () => {
 
     expect(table).toContainEqual(['Belgique', '1', '10.00 EUR']);
     expect(table).toContainEqual(['France', '0', '0.00 EUR']);
-    expect(table).toContainEqual(['Hors UE', '0', '0.00 EUR']);
+    expect(table[1]).toEqual(['Hors UE (TVA non applicable)', '0', '0.00 EUR']);
     expect(table).toContainEqual(['Total ventes', '1', '10.00 EUR']);
   });
 
@@ -67,7 +67,13 @@ describe('generation manifest naming', () => {
 
     expect(table).toContainEqual(['Belgique', 'UE', '70.00 EUR', '10.00 EUR', '60.00 EUR']);
     expect(table).toContainEqual(['France', 'UE', '0.00 EUR', '0.00 EUR', '0.00 EUR']);
-    expect(table).toContainEqual(['Hors UE', 'Hors UE', '30.00 EUR', '15.00 EUR', '15.00 EUR']);
+    expect(table[1]).toEqual([
+      'Hors UE (TVA non applicable)',
+      'Hors UE',
+      '30.00 EUR',
+      '15.00 EUR',
+      '15.00 EUR',
+    ]);
     expect(table).toContainEqual([
       'Total net',
       'Toutes zones',

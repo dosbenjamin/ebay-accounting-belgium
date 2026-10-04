@@ -165,7 +165,7 @@ export const PdfServiceLive = Layer.succeed(PdfService, {
           input.title,
           [
             ...input.lines,
-            `Total comptable en EUR: ${input.totalEur.toFixed(2)} EUR`,
+            `Total final: ${input.totalEur.toFixed(2)} EUR`,
             'Les pages suivantes correspondent à la facture eBay officielle non modifiée.',
           ],
           input.table,
