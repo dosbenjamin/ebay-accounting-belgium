@@ -10,23 +10,37 @@ import type { FeeCurrencyTotal, FeeInvoiceInput } from './schemas';
 
 type RateToEur = (currency: string) => Effect.Effect<number, ExchangeRateLookupError>;
 
-const frenchMonthNames = new Set([
-  'janvier',
-  'fevrier',
-  'février',
-  'mars',
-  'avril',
-  'mai',
-  'juin',
-  'juillet',
-  'aout',
-  'août',
-  'septembre',
-  'octobre',
-  'novembre',
-  'decembre',
-  'décembre',
-]);
+const frenchMonthAliases: Readonly<Record<string, string>> = {
+  jan: 'janvier',
+  janv: 'janvier',
+  janvier: 'janvier',
+  feb: 'février',
+  fevr: 'février',
+  fevrier: 'février',
+  mar: 'mars',
+  mars: 'mars',
+  apr: 'avril',
+  avr: 'avril',
+  avril: 'avril',
+  mai: 'mai',
+  may: 'mai',
+  jun: 'juin',
+  juin: 'juin',
+  jul: 'juillet',
+  juil: 'juillet',
+  juillet: 'juillet',
+  aug: 'août',
+  aout: 'août',
+  sep: 'septembre',
+  sept: 'septembre',
+  septembre: 'septembre',
+  oct: 'octobre',
+  octobre: 'octobre',
+  nov: 'novembre',
+  novembre: 'novembre',
+  dec: 'décembre',
+  decembre: 'décembre',
+};
 
 const requireColumn = (
   row: Record<string, string>,
@@ -50,21 +64,29 @@ const startsWithPeriodLabel = (line: string): boolean =>
     .replace(/\p{Diacritic}/gu, '')
     .startsWith('periode');
 
-const hasValidInvoicePeriod = (month: string | undefined, year: number): month is string =>
-  Boolean(month && frenchMonthNames.has(month) && Number.isInteger(year));
+const normalizeFrenchMonth = (month: string | undefined): string | undefined => {
+  const normalized = month
+    ?.toLocaleLowerCase('fr-FR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\.$/, '');
+
+  return normalized ? frenchMonthAliases[normalized] : undefined;
+};
 
 export const inferEbayInvoicePeriod = Effect.fn('ebayFees.inferInvoicePeriod')(function* (
   csvText: string,
   fileName: string,
 ) {
   yield* Effect.annotateCurrentSpan('file.name', fileName);
-  const periodLine = csvText.split(/\r?\n/).map(normalizePeriodLine).find(startsWithPeriodLabel);
+  const lines = csvText.split(/\r?\n/).map(normalizePeriodLine);
+  const periodLine = lines.find(startsWithPeriodLabel);
 
-  const periodMatch = periodLine?.match(/au\s+\d{1,2}\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})\b/i);
-  const month = periodMatch?.[1]?.toLocaleLowerCase('fr-FR');
+  const periodMatch = periodLine?.match(/au\s+\d{1,2}\s+([A-Za-zÀ-ÿ]+\.?)\s+(\d{4})\b/i);
+  const month = normalizeFrenchMonth(periodMatch?.[1]);
   const year = Number(periodMatch?.[2]);
 
-  if (!hasValidInvoicePeriod(month, year)) {
+  if (!month || !Number.isInteger(year)) {
     return yield* Effect.fail(
       new FeePreviewError({
         message: `La période de facture est introuvable dans ${fileName}. Vérifiez que le CSV eBay contient la ligne "Période".`,

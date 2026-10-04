@@ -38,6 +38,38 @@ describe('ebay fees', () => {
     expect(result).toEqual({ month: 'juin', year: 2026 });
   });
 
+  it('infers the period from the abbreviated eBay month format', async () => {
+    const result = await Effect.runPromise(
+      inferEbayInvoicePeriod(
+        [
+          'Date de facturation : 30 sept. 2026',
+          'Pseudo du vendeur eBay : voxparts',
+          'Période : 01 sept. 2026 au 30 sept. 2026',
+          'Date,Devise,Montant total',
+          '01 sept. 2026 05:29:07,EUR,"4,79"',
+        ].join('\n'),
+        'fees.csv',
+      ),
+    );
+
+    expect(result).toEqual({ month: 'septembre', year: 2026 });
+  });
+
+  it('normalizes an abbreviated English month used by eBay', async () => {
+    const result = await Effect.runPromise(
+      inferEbayInvoicePeriod(
+        [
+          'Date de facturation : 31 Aug 2026',
+          'Période : du 01 Aug 2026 PDT au 31 Aug 2026 PDT',
+          'Date,Devise,Montant total',
+        ].join('\n'),
+        'fees.csv',
+      ),
+    );
+
+    expect(result).toEqual({ month: 'août', year: 2026 });
+  });
+
   it('uses CSV EUR amount first', async () => {
     const result = await Effect.runPromise(
       previewFeeInvoice({
